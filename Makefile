@@ -10,7 +10,7 @@ endif
 
 # Project settings
 PROJECT := Flask-RESTeasy
-PACKAGE := flask_resteasy
+PACKAGE := flask_resteasy.py
 SOURCES := Makefile setup.py $(shell find $(PACKAGE) -name '*.py')
 EGG_INFO := $(subst -,_,$(PROJECT)).egg-info
 
@@ -166,8 +166,9 @@ clean-all: clean clean-env .clean-cache
 
 .PHONY: .clean-build
 .clean-build:
-	find $(PACKAGE) -name '*.pyc' -delete
-	find $(PACKAGE) -name '__pycache__' -delete
+	find tests -name '*.pyc' -delete
+	find -name $(PACKAGE)c -delete
+	find tests -name '__pycache__' -delete
 	rm -rf $(EGG_INFO)
 
 .PHONY: .clean-doc

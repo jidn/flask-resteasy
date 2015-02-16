@@ -1,40 +1,29 @@
-"""Automate the setup of pluggable views, specifically
-:class:`flask.views.MethodView` for use in creating JSON REST APIs.
+"""Automate the setup of pluggable views.
+
+Specifically :class:`flask.views.MethodView` for use in creating JSON
+REST APIs. Other response types could also be create from ApiResponse.
 
 Unlike Flask-RESTful, this does not marshal values or validate input or
 catch and process error messages.  There are other existing tools that
 solve the problem better and Flask really is about flexibility.
 """
-import pytest
+
 from types import MethodType
+from itertools import chain
 from functools import partial, wraps
-from werkzeug.wrappers import Response as ResponseBase
 import flask
-from flask.helpers import _endpoint_from_view_func
 from flask.json import dumps
 from flask.views import MethodView
+from flask.helpers import _endpoint_from_view_func
+from werkzeug.wrappers import Response as ResponseBase
 
-def make_json_response(data, status_code=200, headers={}):
-    """Create a JSON encoded :class:`~flask.Response`
-    :return See `json_response`
-    """
-    return json_response((data, status_code, headers))
 
-def json_response(rv):
-    """Create a json response
-    :param rv: Return value from a view
-    :type rv: a tuple or :class:`~flask.Response`
-    :return: :class:`~flask.Response`
-    """
-    if isinstance(rv, ResponseBase):
-        return rv
-    data, status, headers = unpack(rv)
-    resp = flask.make_response(dumps(data), status, {'Content-Type': 'application/json'})
-    resp.headers.extend(headers)
-    return resp
+__version__ = "0.0.1"
+
 
 def unpack(rv):
-    """Unpack the response from a view
+    """Unpack the response from a view.
+
     :param rv: the view response
     :type rv: either a :class:`werkzeug.wrappers.Response` or a
         tuple of (data, status_code, headers)
@@ -56,11 +45,13 @@ def unpack(rv):
 
 
 class Api(object):
+
     """The main entry point for the application.
+
     You need to initialize it with a Flask Application: ::
 
     >>> app = flask.Flask(__name__)
-    >>> api = flask.ext.resteasy.Api(app)
+    >>> api = flask_resteasy.Api(app)
 
     Alternatively, you can use :meth:`init_app` to set the Flask application
     after it has been constructed.
@@ -68,16 +59,17 @@ class Api(object):
     >>> api.init_app(app)
     """
 
-    def __init__(self, app=None, prefix='', decorators=None, response=json_response):
-        """
+    def __init__(self, app=None, prefix='', decorators=None, response=None):
+        """Create and API consisting of one or more resources.
+
         :param app: the Flask application or blueprint object
         :type app: :class:`~flask.Flask` or :class:`~flask.Blueprint`
         :param prefix: Prefix all routes with a value, eg /v1 or /2015-01-01
         :type prefix: str
         :param decorators: Decorators to attach to every resource
         :type decorators: list
-        :param response: Create a view response
-        :type response: function
+        :param response: `ApiResponse` object, default JSONResponse
+        :type response: `ApiResponse`
         """
         self.app = None
         self.blueprint = None
@@ -86,15 +78,14 @@ class Api(object):
         self.resources = []
         self.endpoints = set()
         self.decorators = decorators if decorators else []
-        self.make_response = response
+        self.responder = response if response else JSONResponse()
 
         if app is not None:
             self.app = app
             self.init_app(app)
 
     def init_app(self, app):
-        """Initialize this class with the given :class:`flask.Flask`
-        application or :class:`flask.Blueprint` object.
+        """Initialize actions with the app or blueprint.
 
         :param app: the Flask application or blueprint object
         :type app: :class:`~flask.Flask` or :class:`~flask.Blueprint`
@@ -107,6 +98,8 @@ class Api(object):
         """
         try:
             # Assume this is a blueprint and defer initialization
+            if app._got_registered_once is True:
+                raise ValueError("""Blueprint is already registered with an app.""")
             app.record(self._deferred_blueprint_init)
         except AttributeError:
             self._init_app(app)
@@ -114,8 +107,7 @@ class Api(object):
             self.blueprint = app
 
     def _init_app(self, app):
-        """Perform initialization actions with the given :class:`flask.Flask`
-        object.
+        """Initialize actions with the given :class:`flask.Flask` object.
 
         :param app: The flask application object
         :type app: :class:`~flask.Flask`
@@ -124,7 +116,9 @@ class Api(object):
             self._register_view(app, resource, *urls, **kwargs)
 
     def _deferred_blueprint_init(self, setup_state):
-        """Synchronize prefix between blueprint/api and registration options, then
+        """Bind resources to the app as recorded in blueprint.
+
+        Synchronize prefix between blueprint/api and registration options, then
         perform initialization with setup_state.app :class:`flask.Flask` object.
         When a :class:`flask.ext.resteasy.Api` object is initialized with a blueprint,
         this method is recorded on the blueprint to be run when the blueprint is later
@@ -141,18 +135,39 @@ class Api(object):
             setup_state.add_url_rule = MethodType(Api._add_url_rule_patch,
                                                   setup_state)
         if not setup_state.first_registration:
-            raise ValueError('flask-resteasy blueprints can only be registered once.')
+            raise ValueError('flask-RESTEasy blueprints can only be registered once.')
         self._init_app(setup_state.app)
 
+    def resource(self, *urls, **kwargs):
+        """Add a :class:`~flask_resteasy.Resource` class.
+
+        See :meth:`~flask_resteasy.Api.add_resource`
+
+        Example::
+
+            app = Flask(__name__)
+            api = resteasy.Api(app)
+
+            @api.resource('/foo')
+            class Foo(Resource):
+                def get(self):
+                    return {'msg': 'Hello, World!'}
+        """
+        def decorator(cls):
+            self.add_resource(cls, *urls, **kwargs)
+            return cls
+
+        return decorator
 
     def add_resource(self, resource, *urls, **kwargs):
-        """Adds a resource to the api.
+        """Add a resource to the api.
 
         :param resource: the class name of your resource
         :type resource: :class:`Resource`
-        :param urls: one or more url routes to match for the resource, standard
+        :param urls: one or more url routes to match the resource, standard
                      flask routing rules apply.  Any url variables will be
                      passed to the resource method as args.
+                     With multiple urls, :meth:`Api.url_for` fives the first
         :type urls: str
 
         :param endpoint: endpoint name (defaults to :meth:`Resource.__name__.lower`
@@ -166,39 +181,29 @@ class Api(object):
 
         Examples::
 
-            api.add_resource(HelloWorld, '/', '/hello')
+            api.add_resource(Foo, '/', '/hello')
             api.add_resource(Foo, '/foo', endpoint="foo")
             api.add_resource(FooSpecial, '/special/foo', endpoint="foo")
         """
-        try:
-            resource.decorators.extend(kwargs.pop('decorators'))
-        except KeyError:
-            pass
         if self.app is not None:
             self._register_view(self.app, resource, *urls, **kwargs)
         else:
             self.resources.append((resource, urls, kwargs))
 
-    def resource(self, *urls, **kwargs):
-        """Wraps a :class:`~flask_resteasy.Resource` class, adding it to the
-        api. Parameters are the same as :meth:`~flask_resteasy.Api.add_resource`.
-
-        Example::
-
-            app = Flask(__name__)
-            api = resteasy.Api(app)
-
-            @api.resource('/foo')
-            class Foo(Resource):
-                def get(self):
-                    return {'msg: 'Hello, World!'}
-        """
-        def decorator(cls):
-            self.add_resource(cls, *urls, **kwargs)
-            return cls
-        return decorator
-
     def _register_view(self, app, resource, *urls, **kwargs):
+        """Bind resources to the app.
+
+        :param app: an actual :class:`flask.Flask` app
+        :param resource:
+        :param urls:
+
+        :param endpoint: endpoint name (defaults to :meth:`Resource.__name__.lower`
+            Can be used to reference this route in :meth:`flask.url_for`
+        :type endpoint: str
+
+        Additional keyword arguments not specified above will be passed as-is
+        to :meth:`flask.Flask.add_url_rule`.
+        """
         endpoint = kwargs.pop('endpoint', None) or resource.__name__.lower()
         self.endpoints.add(endpoint)
 
@@ -210,30 +215,29 @@ class Api(object):
                 raise ValueError('Endpoint {!r} is already set to {!r}.'
                                  .format(endpoint, existing_view_class.__name__))
 
-        # TODO this should be the complete endpoint, ie "blueprint.endpoint"
         resource.endpoint = endpoint
         resource_func = self.output(resource.as_view(endpoint))
 
-        for decorator in self.decorators:
+        for decorator in chain(kwargs.pop('decorators', ()), self.decorators):
             resource_func = decorator(resource_func)
 
         for url in urls:
+            rule = self._make_url(url, self.blueprint.url_prefix if self.blueprint else None)
+
             # If this Api has a blueprint
             if self.blueprint:
                 # And this Api has been setup
                 if self.blueprint_setup:
-                    # Set the rule to a string directly, as the blueprint is already
-                    # set up.
-                    #self.blueprint_setup.add_url_rule(url, view_func=resource_func, **kwargs)
-                    self.blueprint_setup.add_url_rule(partial(self._make_url, url),
-                                                      view_func=resource_func, **kwargs)
+                    # Set the rule to a string directly, as the blueprint
+                    # is already set up.
+                    self.blueprint_setup.add_url_rule(self._make_url(url, None), view_func=resource_func, **kwargs)
                     continue
                 else:
-                    # Set the rule to a function that expects the blueprint prefix
-                    # to construct the final url.  Allows deferment of url finalization
-                    # in the case that the associated Blueprint has not yet been
-                    # registered to an application, so we can wait for the registration
-                    # prefix
+                    # Set the rule to a function that expects the blueprint
+                    # prefix to construct the final url.  Allows deferment
+                    # of url finalization in the case that the Blueprint
+                    # has not yet been registered to an application, so we
+                    # can wait for the registration prefix
                     rule = partial(self._make_url, url)
             else:
                 # If we've got no Blueprint, just build a url with no prefix
@@ -243,9 +247,10 @@ class Api(object):
 
     @staticmethod
     def _add_url_rule_patch(blueprint_setup, rule, endpoint=None, view_func=None, **options):
-        """Method used to patch BlueprintSetupState.add_url_rule for setup
-        state instance corresponding to this Api instance.  Exists primarily
-        to enable _make_url's function.
+        """Patch BlueprintSetupState.add_url_rule for delayed creation.
+
+        Method used for setup state instance corresponding to this Api
+        instance.  Exists primarily to enable _make_url's function.
 
         :param blueprint_setup: The BlueprintSetupState instance (self)
         :param rule: A string or callable that takes a string and returns a
@@ -269,21 +274,25 @@ class Api(object):
                                          view_func, defaults=defaults, **options)
 
     def output(self, resource):
-        """Wraps a resource (as a flask view function), for cases where the
-        resource does not directly return a response object.
-        Now everything should be a Response object
+        """Wrap a resource (as a flask view function).
+
+        This is for cases where the resource does not directly return
+        a response object. Now everything should be a Response object.
 
         :param resource: The resource as a flask view function
         """
         @wraps(resource)
         def wrapper(*args, **kwargs):
             rv = resource(*args, **kwargs)
-            rv = self.make_response(rv)
+            rv = self.responder(rv)
             return rv
+
         return wrapper
 
     def _make_url(self, url_part, blueprint_prefix):
-        """This method is used to defer the construction of the final url in
+        """Create URL from blueprint_prefix, api prefix and resource url.
+
+        This method is used to defer the construction of the final url in
         the case that the Api is created with a Blueprint.
 
         :param url_part: The part of the url the endpoint is registered with
@@ -294,25 +303,100 @@ class Api(object):
         return ''.join(_ for _ in parts if _)
 
     def url_for(self, resource, **kwargs):
-        """Create a url for the given resource
+        """Create a url for the given resource.
+
+        :param resource: The resource
+        :type resource: :class:`Resource`
         :param kwargs: Same arguments you would give :class:`flask.url-for`
         """
+        if self.blueprint:
+            return flask.url_for('.' + resource.endpoint, **kwargs)
         return flask.url_for(resource.endpoint, **kwargs)
 
 
-class Resource(MethodView):
+class ApiResponse(object):
+
+    """Prototype for creating response from MethodView call.
+
+    Subclass from this to create a
+
     """
-    Represents an abstract RESTeasy resource. Concrete resources should
-    extend from this class and expose methods for each supported HTTP
-    method: get, post, delete, put, and patch . If a resource is invoked
-    without a supported HTTP method, the API will return with a status
-    405 Method Not Allowed. Otherwise the appropriate method is called
-    and passed all arguments from the url rule used when adding the
-    resource to an Api instance. See
+
+    content_type = None
+
+    def __call__(self, rv):
+        """Return json from given tuple.
+
+        :param rv: Return value from a view
+        :type rv: a tuple or :class:`~flask.Response`. The tuple is
+            (data, status_code=200, headers={})
+        :return: :class:`~flask.Response`
+        """
+        raise NotImplementedError("You must subclass from ApiResponse.")
+
+    def make(self, data, status_code=200, headers={}):
+        """Return a response from :class:`flask.views.MethodView` method.
+
+        :return See `__call__`
+        """
+        return self((data, status_code, headers))
+
+
+class JSONResponse(ApiResponse):
+
+    """JSON response creator."""
+
+    content_type = 'application/json'
+
+    def __init__(self, encoder=dumps, **kwargs):
+        """Create a JSON response maker.
+
+        :param encoder: JSON encoder, defaults to meth:`json.dumps`
+        Any other arguments are passed directly to :meth:`json.dumps`
+        """
+        self.json_settings = kwargs
+        self._encoder = dumps
+
+    def __call__(self, rv):
+        """Return json response from given tuple.
+
+        :param rv: Return value from a view
+        :type rv: a tuple or :class:`~flask.Response`
+        :return: :class:`~flask.Response`
+        """
+        if isinstance(rv, ResponseBase):
+            return rv
+        data, status, headers = unpack(rv)
+        resp = flask.make_response(self._encoder(data, **self.json_settings),
+                                   status, {'Content-Type': self.content_type})
+        resp.headers.extend(headers)
+        return resp
+
+
+class Resource(MethodView):
+
+    """Represents an abstract RESTeasy resource.
+
+    Concrete resources should extend from this class and expose methods
+    for each supported HTTP method: get, post, delete, put, and patch.
+    If a resource is invoked without a supported HTTP method, the API
+    will return with a status 405 Method Not Allowed. Otherwise the
+    appropriate method is called and passed all arguments from the url
+    rule used when adding the resource to an Api instance. See
     :meth:`~flask.ext.resteasy.Api.add_resource` for details.
     """
+
     def dispatch_request(self, *args, **kwargs):
+        """Detect duplicate decorators.
+
+        Assert all decorators in self.decorators of MethodView are
+        unique.
+
+        TODO Could a decorator itself provide this fuctionality? If so
+        we could eliminate the class and just provide Resource as a
+        renamed :class:`flask.views.MethodView`
+        """
         assert len(self.decorators) == len(set(self.decorators)), \
-            'Multiple decorator calls %s' % self.decorators
+            'Duplicate decorator calls %s' % self.decorators
         rv = MethodView.dispatch_request(self, *args, **kwargs)
         return rv

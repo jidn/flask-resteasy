@@ -52,6 +52,7 @@ PEP8RADIUS := $(BIN)/pep8radius
 PEP257 := $(BIN)/pep257
 PYTEST := $(BIN)/py.test
 COVERAGE := $(BIN)/coverage
+ACTIVATE := $(BIN)/activate
 
 # Remove if you don't want pip to cache downloads
 PIP_CACHE_DIR := .cache
@@ -105,9 +106,13 @@ $(DEPENDS_DEV): Makefile tests/requirements.txt
 
 # Documentation ##############################################################
 
+.PHONY: doc-old
+doc-old: .depends-dev
+	cd docs; $(MAKE) html
+
 .PHONY: doc
 doc: .depends-dev
-	cd docs; $(MAKE) html
+	. $(ACTIVATE); cd docs; $(MAKE) html; 
 
 .PHONY: read
 read: doc

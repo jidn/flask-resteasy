@@ -15,6 +15,7 @@ setup(
     author='Clinton James',
     author_email='clinton.james@anuit.com',
     description='Create easy REST APIs with Flask',
+    long_description=open('README.md').read(),
     packages=find_packages(exclude=['tests']),
     zip_safe=False,
     include_package_data=True,

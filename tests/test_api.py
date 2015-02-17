@@ -31,12 +31,12 @@ class TestHelpers(object):
     def test_using_ApiResponse(self):
         with Flask(__name__).app_context():
             with pytest.raises(NotImplementedError) as err:
-                ApiResponse().make('hi', 200)
+                ApiResponse().pack('hi', 200)
             assert err.value.message == "You must subclass from ApiResponse."
 
     def test_json(self):
         with Flask(__name__).app_context():
-            resp = JSONResponse().make('hi', 201)
+            resp = JSONResponse().pack('hi', 201)
             assert resp.status_code == 201
             assert resp.headers['Content-Type'] == 'application/json'
             assert resp.data == '"hi"'
@@ -167,7 +167,7 @@ class TestAPI(object):
         @app.errorhandler(404)
         def not_found(err):
             rv = {'code': 404, 'msg': 'Not found'}
-            return api.responder.make(rv, 404)
+            return api.responder.pack(rv, 404)
 
         with app.test_client() as c:
             rv = c.get("/api")

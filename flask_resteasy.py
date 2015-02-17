@@ -334,7 +334,7 @@ class ApiResponse(object):
         """
         raise NotImplementedError("You must subclass from ApiResponse.")
 
-    def make(self, data, status_code=200, headers={}):
+    def pack(self, data, status_code=200, headers={}):
         """Return a response from :class:`flask.views.MethodView` method.
 
         :return See `__call__`

@@ -201,7 +201,7 @@ authors:
 
 .PHONY: register
 register: doc
-	$(PYTHON) setup.py register
+	$(PYTHON) setup.py register -r pypi
 
 .PHONY: dist
 dist: doc test
@@ -210,8 +210,8 @@ dist: doc test
 
 .PHONY: upload
 upload: .git-no-changes doc register
-	$(PYTHON) setup.py sdist upload
-	$(PYTHON) setup.py bdist_wheel upload
+	$(PYTHON) setup.py sdist upload -r pypi
+	$(PYTHON) setup.py bdist_wheel upload -r pypi
 
 .PHONY: .git-no-changes
 .git-no-changes:

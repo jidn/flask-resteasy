@@ -1,7 +1,12 @@
 #!/usr/bin/env python
-
+import os
 from setuptools import setup, find_packages
-from flask_resteasy import __version__
+
+# Get version without import and fresh install race condition.
+for _ in open(os.path.join(os.path.dirname(__file__), 'flask_resteasy.py')).readlines():
+    if _.startswith('__version__'):
+        exec(_.strip(), None)
+        break
 
 requirements = [
     'Flask>=0.10',
@@ -12,7 +17,7 @@ setup(
     author='Clinton James',
     author_email='clinton.james@anuit.com',
     url='https://www.github.com/jidn/flask-restful/',
-    download_url='https://github.com/jidn/flask-resteasy/tarball/0.0.1.dev',
+    download_url='https://github.com/jidn/flask-resteasy/tarball/'+__version__,
     description='Create easy REST APIs with Flask',
     long_description=open('README.md').read(),
     version=__version__,

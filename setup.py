@@ -2,8 +2,9 @@
 import os
 from setuptools import setup, find_packages
 
+_basedir = os.path.dirname(__file__)
 # Get version without import and fresh install race condition.
-for _ in open(os.path.join(os.path.dirname(__file__), 'flask_resteasy.py')).readlines():
+for _ in open(os.path.join(_basedir, 'flask_resteasy.py')).readlines():
     if _.startswith('__version__'):
         exec(_.strip(), None)
         break
@@ -19,7 +20,7 @@ setup(
     url='https://www.github.com/jidn/flask-restful/',
     download_url='https://github.com/jidn/flask-resteasy/tarball/'+__version__,
     description='Create easy REST APIs with Flask',
-    long_description=open('README.md').read(),
+    long_description=open(os.path.join(_basedir, 'README.md')).read(),
     version=__version__,
     keywords=['flask', 'REST'],
     classifiers=[

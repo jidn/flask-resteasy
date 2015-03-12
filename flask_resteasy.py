@@ -203,6 +203,9 @@ class Api(object):
 
         Additional keyword arguments not specified above will be passed as-is
         to :meth:`flask.Flask.add_url_rule`.
+
+        SIDE EFFECT
+          The resource.endpoint will have the :func:`flask.url_for` endpoint
         """
         endpoint = kwargs.pop('endpoint', None) or resource.__name__.lower()
         self.endpoints.add(endpoint)

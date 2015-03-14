@@ -149,11 +149,11 @@ PYTEST_OPTS := --cov $(PACKAGE) \
 
 .PHONY: test
 test: .depends-ci
-	$(PYTEST) tests $(PYTEST_OPTS)
+	$(PYTEST) tests/*.py $(PYTEST_OPTS)
 
 .PHONY: pdb
 pdb: .depends-ci
-	$(PYTEST) tests $(PYTEST_OPTS) -x --pdb
+	$(PYTEST) tests/*.py $(PYTEST_OPTS) -x --pdb
 
 .PHONY: htmlcov
 htmlcov: test

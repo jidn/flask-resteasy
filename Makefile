@@ -80,7 +80,7 @@ ci: test
 .PHONY: env
 env: .virtualenv $(EGG_INFO)
 $(EGG_INFO): Makefile setup.py
-	$(PIP) install -e .[paging,docs]
+	$(PIP) install -e .
 	touch $(EGG_INFO)  # flag to indicate package is installed
 
 .PHONY: .virtualenv
@@ -100,7 +100,7 @@ $(DEPENDS_CI): Makefile tests/requirements.txt
 
 .PHONY: .depends-dev
 .depends-dev: env Makefile $(DEPENDS_DEV)
-$(DEPENDS_DEV): Makefile tests/requirements.txt
+$(DEPENDS_DEV): Makefile
 	$(PIP) install $(PIP_CACHE) --upgrade pep8radius pygments wheel
 	touch $(DEPENDS_DEV)  # flag to indicate dependencies are installed
 
@@ -145,11 +145,15 @@ fix: .depends-dev
 
 PYTEST_OPTS := --cov $(PACKAGE) \
 			   --cov-report term-missing \
-			   --cov-report html --pdb
+			   --cov-report html 
 
 .PHONY: test
 test: .depends-ci
 	$(PYTEST) tests $(PYTEST_OPTS)
+
+.PHONY: pdb
+pdb: .depends-ci
+	$(PYTEST) tests $(PYTEST_OPTS) -x --pdb
 
 .PHONY: htmlcov
 htmlcov: test
@@ -183,6 +187,7 @@ clean-all: clean clean-env .clean-cache
 .PHONY: .clean-test
 .clean-test:
 	rm -rf .coverage
+	rm -f test.log
 
 .PHONY: .clean-dist
 .clean-dist:

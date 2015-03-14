@@ -8,77 +8,37 @@ import warnings
 from flask import Flask, Blueprint, request, url_for
 from flask.json import loads
 from flask_resteasy import Api, Resource
+from .tools import make_foo
 
 
-# Add a dummy Resource to verify that the app is properly set.
-class HelloWorld(Resource):
-    resp = {}
 
-    def get(self):
-        return HelloWorld.resp
+def setup_blueprint_api(resource, bp=None, ap=None, rp=None):
+    blueprint = Blueprint('test', __name__, url_prefix=bp)
+    api = Api(blueprint, prefix=ap)
+    api.add_resource(resource, '/foo', endpoint='foo')
+    app = Flask(__name__, static_folder=None)
+    app.register_blueprint(blueprint, url_prefix=rp)
+    return app, api
+
+def setup_api_blueprint(resource, bp=None, ap=None, rp=None):
+    api = Api(None, prefix=ap)
+    api.add_resource(resource, '/foo', endpoint='foo')
+    blueprint = Blueprint('test', __name__, url_prefix=bp)
+    api.init_app(blueprint)
+    app = Flask(__name__, static_folder=None)
+    app.register_blueprint(blueprint, url_prefix=rp)
+    return app, api
 
 
-def to_json(v):
-    return loads(v.data)
-
-
-class TestPrefixes(object):
+class TestBlueprint(object):
     """Ensure the Blueprint, Api, Resource sequence of prefix and url are right
     """
-    resource_url = '/hi'
-    prefix_params = [(None, None, ''), (None, '/url', '/url'),
-                     ('/bp', None, '/bp'), ('/bp', '/api', '/bp/api')]
-
-    @pytest.mark.parametrize('setup', prefix_params)
-    def test_with_blueprint(self, setup):
-        bp_prefix, api_prefix, bp_api_url = setup
-        expecting_url = bp_api_url + TestPrefixes.resource_url
-
-        bp = Blueprint('test', __name__, url_prefix=bp_prefix)
-        api = Api(bp, prefix=api_prefix)
-        api.add_resource(HelloWorld, TestPrefixes.resource_url, endpoint='hello')
-        api.init_app(bp)
-        app = Flask(__name__, static_folder=None)
-        app.register_blueprint(bp)
-
-        assert 'hello' in api.endpoints
-        assert HelloWorld.endpoint == 'hello'
-        with app.test_client() as c:
-            rv = c.get(expecting_url)
-            assert rv.status_code == 200
-            assert request.endpoint == 'test.hello'
-
-        with app.test_request_context(expecting_url):
-            assert url_for('.hello') == expecting_url
-            assert url_for('test.hello') == expecting_url
-            assert api.url_for(HelloWorld) == expecting_url
-
-    @pytest.mark.parametrize('setup', prefix_params)
-    def test_with_ini_app_blueprint(self, setup):
-        bp_prefix, api_prefix, bp_api_url = setup
-        expecting_url = bp_api_url + TestPrefixes.resource_url
-
-        bp = Blueprint('test', __name__, url_prefix=bp_prefix)
-        api = Api(prefix=api_prefix)
-        api.add_resource(HelloWorld, TestPrefixes.resource_url)
-        api.init_app(bp)
-        app = Flask(__name__, static_folder=None)
-        app.register_blueprint(bp)
-
-        assert 'helloworld' in api.endpoints
-        assert HelloWorld.endpoint == 'helloworld'
-        with app.test_client() as c:
-            rv = c.get(expecting_url)
-            assert rv.status_code == 200
-            assert request.endpoint == 'test.helloworld'
-
-        with app.test_request_context(expecting_url):
-            assert url_for('.helloworld') == expecting_url
-            assert url_for('test.helloworld') == expecting_url
-            assert api.url_for(HelloWorld) == expecting_url
-
-
-class TestAPIWithBlueprint(object):
+    prefix_params = (
+        (None, None, None, '/foo'),
+        ('/bp', None, None, '/bp/foo'),
+        ('/v1', '/2015', None, '/v1/2015/foo'),
+        ('/bp', '/api', '/reg', '/reg/api/foo'),
+        )
 
     def test_add_with_app_blueprint(self):
         app = Flask(__name__)
@@ -92,22 +52,11 @@ class TestAPIWithBlueprint(object):
         blueprint = Blueprint('test', __name__)
         app.register_blueprint(blueprint)
         api = Api()
-        api.add_resource(HelloWorld, '/hi')
+        resource = make_foo()
+        api.add_resource(resource, '/hi')
         with pytest.raises(ValueError) as err:
             api.init_app(blueprint)
         assert err.value.message.startswith('Blueprint is already registered')
-
-    def test_with_prefix(self):
-        bp = Blueprint('test', __name__, url_prefix='/bp')
-        api = Api(prefix='/api')
-        api.add_resource(HelloWorld, '/hi')
-        api.init_app(bp)
-        app = Flask(__name__)
-        app.register_blueprint(bp)
-
-        assert api.prefix == '/api'
-        with app.test_client() as c:
-            assert to_json(c.get('/bp/api/hi')) == {}
 
     def test_add_resource_endpoint(self):
         blueprint = Blueprint('test', __name__)
@@ -127,42 +76,33 @@ class TestAPIWithBlueprint(object):
         api.add_resource(view, '/foo', endpoint='bar')
         view.as_view.assert_called_with('bar')
 
-    def test_url_with_api_prefix(self):
-        blueprint = Blueprint('test', __name__)
-        api = Api(blueprint, prefix='/api')
-        api.add_resource(HelloWorld, '/hi', endpoint='hello')
-        app = Flask(__name__)
-        app.register_blueprint(blueprint, url_prefix='/bp')
-        with app.test_request_context('/bp/api/hi'):
-            assert request.endpoint == 'test.hello'
-            assert url_for('.hello') == '/bp/api/hi'
+    @pytest.mark.parametrize('setup', (setup_blueprint_api,
+                                       setup_api_blueprint))
+    @pytest.mark.parametrize('bp,ap,rp,url', prefix_params)
+    def test_prefix(self, bp, ap, rp, url, setup):
+        """Test the various prefix possibilities with blueprint available
+        at Api creation time.
+        bp: Blueprint(..., url_prefix=bp)
+        ap: Api(..., prefix=ap)
+        rp: app.register_blueprint(..., url_prefix=rp)
+        """
+        resource = make_foo()
 
-    def test_url_with_blueprint_prefix(self):
-        app = Flask(__name__)
-        blueprint = Blueprint('test', __name__, url_prefix='/bp')
-        api = Api(blueprint)
-        api.add_resource(HelloWorld, '/hi', endpoint='hello')
-        app.register_blueprint(blueprint)
-        with app.test_request_context('/bp/hi'):
-            assert request.endpoint == 'test.hello'
+        assert not hasattr(resource, 'endpoint')
+        app, api = setup(resource, bp, ap, rp)
 
-    def test_url_with_registration_prefix(self):
-        blueprint = Blueprint('test', __name__, url_prefix='/v1')
-        api = Api(blueprint, prefix='/2015')
-        api.add_resource(HelloWorld, '/hi', endpoint='hello')
-        app = Flask(__name__)
-        app.register_blueprint(blueprint)
-        with app.test_request_context('/v1/2015/hi'):
-            assert request.endpoint == 'test.hello'
+        assert 'foo' in api.endpoints
+        assert resource.endpoint == 'foo'
+        with app.test_request_context(url):
+            assert request.endpoint == 'test.foo'
+            assert url_for('.foo') == url
+            assert url_for(request.endpoint) == url
 
-    def test_registration_prefix_overrides_blueprint_prefix(self):
-        blueprint = Blueprint('test', __name__, url_prefix='/bp')
-        api = Api(blueprint, prefix='/api')
-        api.add_resource(HelloWorld, '/hi', endpoint='hello')
-        app = Flask(__name__)
-        app.register_blueprint(blueprint, url_prefix='/reg')
-        with app.test_request_context('/reg/api/hi'):
-            assert request.endpoint == 'test.hello'
+        with app.test_client() as c:
+            rv = c.get(url)
+            assert rv.status_code == 200
+            assert request.endpoint == 'test.foo'
+            assert loads(rv.data) == resource.resp
 
     def test_add_resource_kwargs(self):
         bp = Blueprint('bp', __name__)

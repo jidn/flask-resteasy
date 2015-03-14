@@ -1,3 +1,4 @@
+import logging
 try:
     from mock import Mock
 except:
@@ -7,19 +8,14 @@ from flask import Flask, abort, make_response, request, url_for, views
 from flask.json import loads
 from flask_resteasy import Api, ApiResponse, Resource, JSONResponse, unpack
 import pytest
-
+from .tools import make_foo
 
 def to_json(v):
     return loads(v.data)
 
-
-# Add a dummy Resource to verify that the app is properly set.
-class Foo(Resource):
-    resp = {'msg': 'foo!'}
-
-    def get(self):
-        return Foo.resp
-
+#@pytest.fixture
+#def Foo():
+#    return make_foo()
 
 class TestHelpers(object):
     def test_unpack(self):
@@ -27,6 +23,10 @@ class TestHelpers(object):
         assert ('hi', 200, {}) == unpack(('hi', 200))
         assert ('hi', 200, {}) == unpack(('hi', None))
         assert ('hi', 200, {'X': 'hi'}) == unpack(('hi', 200, {'X': 'hi'}))
+
+    def test_resource_without_endpoint(self):
+        resource = make_foo()
+        assert not hasattr(resource, 'endpoint')
 
     def test_using_ApiResponse(self):
         with Flask(__name__).app_context():
@@ -50,13 +50,13 @@ class TestPrefixes(object):
     @pytest.mark.parametrize('api_prefix', [None, '/api'])
     def test_with_app(self, api_prefix):
         expecting_url = (api_prefix or '') + TestPrefixes.resource_url
-
+        resource = make_foo()
         app = Flask(__name__, static_folder=None)
         api = Api(app, prefix=api_prefix)
-        api.add_resource(Foo, TestPrefixes.resource_url, endpoint='hello')
+        api.add_resource(resource, TestPrefixes.resource_url, endpoint='hello')
 
         assert 'hello' in api.endpoints
-        assert Foo.endpoint == 'hello'
+        assert resource.endpoint == 'hello'
         with app.test_client() as c:
             rv = c.get(expecting_url)
             assert rv.status_code == 200
@@ -64,19 +64,19 @@ class TestPrefixes(object):
 
         with app.test_request_context(expecting_url):
             assert url_for('hello') == expecting_url
-            assert api.url_for(Foo) == expecting_url
+            assert api.url_for(resource) == expecting_url
 
     @pytest.mark.parametrize('api_prefix', [None, '/api'])
     def test_with_init_app(self, api_prefix):
         expecting_url = (api_prefix or '') + TestPrefixes.resource_url
-
+        resource = make_foo()
         api = Api(prefix=api_prefix)
-        api.add_resource(Foo, TestPrefixes.resource_url, endpoint='hello')
+        api.add_resource(resource, TestPrefixes.resource_url, endpoint='hello')
         app = Flask(__name__, static_folder=None)
         api.init_app(app)
 
         assert 'hello' in api.endpoints
-        assert Foo.endpoint == 'hello'
+        assert resource.endpoint == 'hello'
         with app.test_client() as c:
             rv = c.get(expecting_url)
             assert rv.status_code == 200
@@ -84,7 +84,7 @@ class TestPrefixes(object):
 
         with app.test_request_context(expecting_url):
             assert url_for('hello') == expecting_url
-            assert api.url_for(Foo) == expecting_url
+            assert api.url_for(resource) == expecting_url
 
 
 class TestAPI(object):
@@ -98,30 +98,38 @@ class TestAPI(object):
     def test_api_delayed_initialization(self):
         app = Flask(__name__)
         api = Api()
-        api.add_resource(Foo, '/', endpoint="hello")
+        resource = make_foo()
+        api.add_resource(resource, '/', endpoint="hello")
         api.init_app(app)
-        assert Foo.endpoint == 'hello'
+        assert resource.endpoint == 'hello'
         with app.test_client() as client:
             assert client.get('/').status_code == 200
 
     def test_api_on_multiple_url(self):
-        app = Flask(__name__)
+        """Added resource can have several URLs.
+
+        `url_for` will only return the first url
+        """
+        app = Flask(__name__, static_folder=None)
         api = Api(app)
 
-        api.add_resource(Foo, '/api', '/api2')
+        resource = make_foo()
+        api.add_resource(resource, '/api', '/api2')
         with app.test_request_context('/api'):
-            assert api.url_for(Foo) == '/api'
+            assert api.url_for(resource) == '/api'
+
         with app.test_request_context('/api2'):
-            assert api.url_for(Foo) == '/api'
+            assert api.url_for(resource) == '/api'
+
         with app.test_client() as c:
-            assert to_json(c.get('/api')) == Foo.resp
-            assert to_json(c.get('/api2')) == Foo.resp
+            assert to_json(c.get('/api')) == resource.resp
+            assert to_json(c.get('/api2')) == resource.resp
 
     def test_api_same_endpoint(self):
         app = Flask(__name__)
         api = Api(app, prefix='/v1')
 
-        api.add_resource(Foo, '/foo', endpoint='baz')
+        api.add_resource(make_foo(), '/foo', endpoint='baz')
 
         class Bar(Resource):
             def get(self):
@@ -189,9 +197,10 @@ class TestAPI(object):
     def test_url_for(self):
         app = Flask(__name__)
         api = Api(app)
-        api.add_resource(Foo, '/greeting/<int:idx>')
+        resource = make_foo()
+        api.add_resource(resource, '/greeting/<int:idx>')
         with app.test_request_context('/foo'):
-            assert api.url_for(Foo, idx=5) == '/greeting/5'
+            assert api.url_for(resource, idx=5) == '/greeting/5'
 
     def test_add_the_same_resource_on_different_endpoint(self):
         app = Flask(__name__)
@@ -212,16 +221,6 @@ class TestAPI(object):
 
             foo2 = client.get('/foo/toto')
             assert foo2.data == b'"foo1"'
-
-    def test_add_resource(self):
-        app = Mock(Flask)
-        app.view_functions = {}
-
-        api = Api(app)
-        api.output = Mock()
-        api.add_resource(views.MethodView, '/foo')
-
-        app.add_url_rule.assert_called_with('/foo', view_func=api.output())
 
     def test_add_resource_endpoint(self):
         app = Mock(Flask)
@@ -273,14 +272,14 @@ class TestAPI(object):
 
     def test_output_func(self):
 
-        def make_empty_resposne():
+        def make_empty_response():
             return make_response('')
 
         app = Flask(__name__)
         api = Api(app)
 
         with app.test_request_context("/foo"):
-            wrapper = api.output(make_empty_resposne)
+            wrapper = api.output(make_empty_response)
             resp = wrapper()
             assert resp.status_code == 200
             assert resp.data.decode() == ''
@@ -298,14 +297,15 @@ class TestAPI(object):
         resource.get = Mock()
         with app.test_request_context("/foo"):
             resource.get.return_value = make_response('')
-            resource.dispatch_request()
+            rv = resource.dispatch_request()
 
     def test_resource_error(self):
         app = Flask(__name__)
         resource = Resource()
         with app.test_request_context("/foo"):
-            with pytest.raises(AssertionError):
+            with pytest.raises(AssertionError) as err:
                 resource.dispatch_request()
+            assert err.value.message.startswith('Unimplemented method')
 
     def test_resource_head(self):
         app = Flask(__name__)
@@ -317,12 +317,13 @@ class TestAPI(object):
     def test_fr_405(self):
         app = Flask(__name__)
         api = Api(app)
-        api.add_resource(Foo, '/ids/<int:id>', endpoint="hello")
-        app = app.test_client()
-        resp = app.post('/ids/3')
-        assert resp.status_code == 405
-        expected_methods = ['HEAD', 'OPTIONS'] + Foo.methods
-        assert resp.headers.get_all('Allow').sort() == expected_methods.sort()
+        foo = make_foo()
+        api.add_resource(foo, '/ids/<int:id>', endpoint="hello")
+        with app.test_client() as c:
+            rv = c.post('/ids/3')
+            assert rv.status_code == 405
+        expected_methods = ['HEAD', 'OPTIONS'] + foo.methods
+        assert rv.headers.get_all('Allow').sort() == expected_methods.sort()
 
 
 class TestJSON(object):
@@ -350,9 +351,10 @@ class TestJSON(object):
 
     def test_will_pass_options_to_json(self):
 
+        resource = make_foo()
         app = Flask(__name__)
         api = Api(app, response=JSONResponse(indent=123))
-        api.add_resource(Foo, '/foo', endpoint='bar')
+        api.add_resource(resource, '/foo', endpoint='bar')
 
         assert 'indent' in api.responder.json_settings
         with app.test_client() as client:

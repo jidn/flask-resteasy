@@ -46,7 +46,7 @@ class TestBlueprint(object):
         app.register_blueprint(blueprint)
         with pytest.raises(ValueError) as err:
             api = Api(blueprint)
-        assert err.value.message.startswith('Blueprint is already registered')
+        assert err.value.args[0].startswith('Blueprint is already registered')
 
         app = Flask(__name__)
         blueprint = Blueprint('test', __name__)
@@ -56,7 +56,7 @@ class TestBlueprint(object):
         api.add_resource(resource, '/hi')
         with pytest.raises(ValueError) as err:
             api.init_app(blueprint)
-        assert err.value.message.startswith('Blueprint is already registered')
+        assert err.value.args[0].startswith('Blueprint is already registered')
 
     def test_add_resource_endpoint(self):
         blueprint = Blueprint('test', __name__)
@@ -115,7 +115,7 @@ class TestBlueprint(object):
         app = Flask(__name__)
         app.register_blueprint(bp)
         with app.test_client() as c:
-            assert c.get('/foo').data == '"bar"'
+            assert loads(c.get('/foo').data) == "bar"
 
     def test_resource_return_values(self):
         app = Flask(__name__)
@@ -133,7 +133,7 @@ class TestBlueprint(object):
         with app.test_client() as c:
             rv = c.get('/api/0')
             assert rv.status_code == 302
-            assert rv.data == '{}'
+            assert loads(rv.data) == {}
             assert rv.headers['X-junk'] == 'junk header'
 
             rv = c.get('/api/1')
@@ -156,7 +156,7 @@ class TestBlueprint(object):
 
         @app.errorhandler(ValueError)
         def value_error(err):
-            return api.responder(({'err': err.message}, 500))
+            return api.responder(({'err': err.args[0]}, 500))
 
         api = Api(app)
 

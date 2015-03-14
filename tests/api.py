@@ -32,15 +32,15 @@ class TestHelpers(object):
         with Flask(__name__).app_context():
             with pytest.raises(NotImplementedError) as err:
                 ApiResponse().pack('hi', 200)
-            assert err.value.message == "You must subclass from ApiResponse."
+#            assert err.value.message == "You must subclass from ApiResponse."
+            assert err.value.args[0] == "You must subclass from ApiResponse."
 
     def test_json(self):
         with Flask(__name__).app_context():
             resp = JSONResponse().pack('hi', 201)
             assert resp.status_code == 201
             assert resp.headers['Content-Type'] == 'application/json'
-            assert resp.data == '"hi"'
-
+            assert loads(resp.data) == "hi"
 
 class TestPrefixes(object):
     """Ensure the Blueprint, Api, Resource sequence of prefix and url are right
@@ -136,7 +136,7 @@ class TestAPI(object):
                 return 'bar'
         with pytest.raises(ValueError) as err:
             api.add_resource(Bar, '/bar', endpoint='baz')
-        assert err.value.message.startswith("Endpoint 'baz' is already")
+        assert err.value.args[0].startswith("Endpoint 'baz' is already")
 
     def test_api_same_url(self):
         # TODO Should this pop an error?
@@ -158,7 +158,7 @@ class TestAPI(object):
             assert url_for('foo') == '/v1/api'
         with app.test_client() as c:
             rv = c.get('/v1/api')
-            assert rv.data == '"foo"'
+            assert loads(rv.data) == "foo"
 
     def test_handle_api_error(self):
         api = Api()
@@ -255,7 +255,7 @@ class TestAPI(object):
             def get(self, foo):
                 return foo
         with app.test_client() as c:
-            assert c.get('/bar').data == '"bar"'
+            assert loads(c.get('/bar').data) == "bar"
 
     def test_output_unpack(self):
         def make_empty_response():
@@ -305,7 +305,7 @@ class TestAPI(object):
         with app.test_request_context("/foo"):
             with pytest.raises(AssertionError) as err:
                 resource.dispatch_request()
-            assert err.value.message.startswith('Unimplemented method')
+            assert err.value.args[0].startswith('Unimplemented method')
 
     def test_resource_head(self):
         app = Flask(__name__)

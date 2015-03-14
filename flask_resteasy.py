@@ -181,9 +181,18 @@ class Api(object):
 
         Examples::
 
-            api.add_resource(Foo, '/', '/hello')
-            api.add_resource(Foo, '/foo', endpoint="foo")
-            api.add_resource(FooSpecial, '/special/foo', endpoint="foo")
+        >>> api.add_resource(Foo, '/', '/hello')
+        >>> api.add_resource(Foo, '/foo', endpoint="foo")
+        >>> api.add_resource(FooSpecial, '/special/foo', endpoint="foo")
+
+        SIDE EFFECT
+            Assign endpoint to the resource if it isn't already defined
+            which can be used for :func:`flask.url_for`.
+            Thus Foo.endpoint is 'foo'
+        >>> Foo.endpoint
+        'foo'
+        >>> Foo.url_for()
+        '/foo'
         """
         if self.app is not None:
             self._register_view(self.app, resource, *urls, **kwargs)
@@ -205,7 +214,7 @@ class Api(object):
         to :meth:`flask.Flask.add_url_rule`.
 
         SIDE EFFECT
-          The resource.endpoint will have the :func:`flask.url_for` endpoint
+            Implements the one mentioned in add_resource
         """
         endpoint = kwargs.pop('endpoint', None) or resource.__name__.lower()
         self.endpoints.add(endpoint)
@@ -218,7 +227,8 @@ class Api(object):
                 raise ValueError('Endpoint {!r} is already set to {!r}.'
                                  .format(endpoint, existing_view_class.__name__))
 
-        resource.endpoint = endpoint
+        if not hasattr(resource, 'endpoint'):  # Don't replace existing endpoint
+            resource.endpoint = endpoint
         resource_func = self.output(resource.as_view(endpoint))
 
         for decorator in chain(kwargs.pop('decorators', ()), self.decorators):

@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/jidn/flask-resteasy.svg?branch=master)](https://travis-ci.org/jidn/flask-resteasy.svg?branch=masterp)
+
 # Flask-RESTeasy
 
 It starts with an itch.  I was using Flask-RESTful but I soon started

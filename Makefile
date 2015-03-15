@@ -104,20 +104,6 @@ $(DEPENDS_DEV): Makefile
 	$(PIP) install $(PIP_CACHE) --upgrade pep8radius pygments wheel
 	touch $(DEPENDS_DEV)  # flag to indicate dependencies are installed
 
-# Documentation ##############################################################
-
-.PHONY: doc-old
-doc-old: .depends-dev
-	cd docs; $(MAKE) html
-
-.PHONY: doc
-doc: .depends-dev
-	. $(ACTIVATE); cd docs; $(MAKE) html; 
-
-.PHONY: read
-read: doc
-	$(OPEN) docs/_build/html/index.html
-
 # Static Analysis ############################################################
 
 .PHONY: check
@@ -196,6 +182,20 @@ clean-all: clean clean-env .clean-cache
 .PHONY: .clean-cache
 .clean-cache:
 	rm -rf $(PIP_CACHE_DIR)
+
+# Documentation ##############################################################
+
+.PHONY: doc-old
+doc-old: .depends-dev
+	cd docs; $(MAKE) html
+
+.PHONY: doc
+doc: .depends-dev
+	. $(ACTIVATE); cd docs; $(MAKE) html; 
+
+.PHONY: read
+read: doc
+	$(OPEN) docs/_build/html/index.html
 
 # Release ####################################################################
 

@@ -6,6 +6,24 @@ REST APIs. Other response types could also be create from ApiResponse.
 Unlike Flask-RESTful, this does not marshal values or validate input or
 catch and process error messages.  There are other existing tools that
 solve the problem better and Flask really is about flexibility.
+
+EXAMPLE
+    from flask import Flask
+    from flask.ext import resteasy
+
+    app = Flask(__name__)
+    api = resteasy.Api(app)
+
+    @api.resource('/')
+    class HelloWorld(resteasy.Resource):
+        def get(self):
+            return {'msg': 'Hello world'}
+
+        def delete(self):
+            return {'msg': 'No can do'}
+
+    if __name__ == '__main__':
+        app.run(debug=True)
 """
 
 from types import MethodType
@@ -18,7 +36,7 @@ from flask.helpers import _endpoint_from_view_func
 from werkzeug.wrappers import Response as ResponseBase
 
 
-__version__ = "0.0.2"
+__version__ = "0.0.3"
 
 
 def unpack(rv):
@@ -320,7 +338,7 @@ class Api(object):
 
         :param resource: The resource
         :type resource: :class:`Resource`
-        :param kwargs: Same arguments you would give :class:`flask.url-for`
+        :param kwargs: Same arguments you would give :class:`flask.url_for`
         """
         if self.blueprint:
             return flask.url_for('.' + resource.endpoint, **kwargs)
@@ -331,8 +349,7 @@ class ApiResponse(object):
 
     """Prototype for creating response from MethodView call.
 
-    Subclass from this to create a
-
+    Subclass to create a response handler.  See :class:`JSONResponse`
     """
 
     content_type = None
@@ -361,14 +378,16 @@ class JSONResponse(ApiResponse):
 
     content_type = 'application/json'
 
-    def __init__(self, encoder=dumps, **kwargs):
+    def __init__(self, encoder=None, **kwargs):
         """Create a JSON response maker.
 
         :param encoder: JSON encoder, defaults to meth:`json.dumps`
-        Any other arguments are passed directly to :meth:`json.dumps`
+        Any other arguments are passed directly to `encoder`
         """
+        if encoder is None:
+            encoder = dumps
         self.json_settings = kwargs
-        self._encoder = dumps
+        self._encoder = encoder
 
     def __call__(self, rv):
         """Return json response from given tuple.

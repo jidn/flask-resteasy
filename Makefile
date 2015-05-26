@@ -1,20 +1,19 @@
+# Python Project Makefile - Clinton James
+# For more information on creating packages for PyPI see the writeup at
+# http://peterdowns.com/posts/first-time-with-pypi.html
+#
 # Python settings
 ifndef TRAVIS
-	PYTHON_MAJOR := 2
-	PYTHON_MINOR := 7
+	PYTHON_MAJOR := 3
+	PYTHON_MINOR := 4
 	ENV := env
 else
 	# Use the virtualenv provided by Travis
 	ENV = $(VIRTUAL_ENV)
 endif
 
-# Project settings
-PROJECT := Flask-RESTeasy
-PACKAGE := flask_resteasy.py
-SOURCES := Makefile setup.py $(shell find $(PACKAGE) -name '*.py')
-EGG_INFO := $(subst -,_,$(PROJECT)).egg-info
-
 # System paths
+# I haven't developed for windows for a long time, mileage may vary.
 PLATFORM := $(shell python -c 'import sys; print(sys.platform)')
 ifneq ($(findstring win32, $(PLATFORM)), )
 	SYS_PYTHON_DIR := C:\\Python$(PYTHON_MAJOR)$(PYTHON_MINOR)
@@ -39,7 +38,7 @@ else
 	ifneq ($(findstring cygwin, $(PLATFORM)), )
 		OPEN := cygstart
 	else
-		OPEN := open
+		OPEN := xdg-open
 	endif
 endif
 
@@ -54,11 +53,14 @@ PYTEST := $(BIN)/py.test
 COVERAGE := $(BIN)/coverage
 ACTIVATE := $(BIN)/activate
 
-# Remove if you don't want pip to cache downloads
-PIP_CACHE_DIR := .cache
-PIP_CACHE := --download-cache $(PIP_CACHE_DIR)
+# Project settings
+PROJECT := Flask-RESTeasy
+PACKAGE := flask_resteasy.py
+SOURCES := Makefile setup.py $(shell find $(PACKAGE) -name '*.py')
+EGG_INFO := $(subst -,_,$(PROJECT)).egg-info
 
 # Flags for PHONY targets
+# Are environments/tools installed for continuous integration and development?
 DEPENDS_CI := $(ENV)/.depends-ci
 DEPENDS_DEV := $(ENV)/.depends-dev
 ALL := $(ENV)/.all
@@ -66,7 +68,7 @@ ALL := $(ENV)/.all
 # Main Targets ###############################################################
 
 .PHONY: all
-all: depends doc $(ALL)
+all: depends $(ALL)
 $(ALL): $(SOURCES)
 	$(MAKE) check
 	touch $(ALL)  # flag to indicate all setup steps were successful
@@ -75,7 +77,7 @@ $(ALL): $(SOURCES)
 .PHONY: ci
 ci: test
 
-# Development Installation ###################################################
+# Environment Installation ###################################################
 
 .PHONY: env
 env: .virtualenv $(EGG_INFO)
@@ -83,7 +85,7 @@ $(EGG_INFO): Makefile setup.py
 	$(PIP) install -e .
 	touch $(EGG_INFO)  # flag to indicate package is installed
 
-.PHONY: .virtualenv
+.ONY: .virtualenv
 .virtualenv: $(PIP)
 $(PIP):
 	$(SYS_VIRTUALENV) --python $(SYS_PYTHON) $(ENV)
@@ -94,14 +96,14 @@ depends: .depends-ci .depends-dev
 .PHONY: .depends-ci
 .depends-ci: env Makefile $(DEPENDS_CI)
 $(DEPENDS_CI): Makefile tests/requirements.txt
-	$(PIP) install $(PIP_CACHE) --upgrade flake8 pep257
+	$(PIP) install --upgrade flake8 pep257
 	$(PIP) install -r tests/requirements.txt
 	touch $(DEPENDS_CI)  # flag to indicate dependencies are installed
 
 .PHONY: .depends-dev
 .depends-dev: env Makefile $(DEPENDS_DEV)
 $(DEPENDS_DEV): Makefile
-	$(PIP) install $(PIP_CACHE) --upgrade pep8radius pygments wheel
+	$(PIP) install --upgrade wheel  # pep8radius pygments wheel
 	touch $(DEPENDS_DEV)  # flag to indicate dependencies are installed
 
 # Static Analysis ############################################################
@@ -109,7 +111,7 @@ $(DEPENDS_DEV): Makefile
 .PHONY: check
 check: flake8 pep257
 
-PEP8_IGNORED := E501
+PEP8_IGNORED := E501,E123
 
 .PHONY: pep8
 pep8: .depends-ci
@@ -149,7 +151,7 @@ htmlcov: test
 # Cleanup ####################################################################
 
 .PHONY: clean
-clean: .clean-dist .clean-test .clean-doc .clean-build
+clean: .clean-dist .clean-test .clean-build
 	rm -rf $(ALL)
 
 .PHONY: clean-env
@@ -157,7 +159,7 @@ clean-env: clean
 	rm -rf $(ENV)
 
 .PHONY: clean-all
-clean-all: clean clean-env .clean-cache
+clean-all: clean clean-env
 
 .PHONY: .clean-build
 .clean-build:
@@ -165,10 +167,6 @@ clean-all: clean clean-env .clean-cache
 	find -name $(PACKAGE)c -delete
 	find tests -name '__pycache__' -delete
 	rm -rf $(EGG_INFO)
-
-.PHONY: .clean-doc
-.clean-doc:
-	rm -rf README.rst apidocs docs/*.html docs/*.png
 
 .PHONY: .clean-test
 .clean-test:
@@ -179,24 +177,6 @@ clean-all: clean clean-env .clean-cache
 .clean-dist:
 	rm -rf dist build
 
-.PHONY: .clean-cache
-.clean-cache:
-	rm -rf $(PIP_CACHE_DIR)
-
-# Documentation ##############################################################
-
-.PHONY: doc-old
-doc-old: .depends-dev
-	cd docs; $(MAKE) html
-
-.PHONY: doc
-doc: .depends-dev
-	. $(ACTIVATE); cd docs; $(MAKE) html; 
-
-.PHONY: read
-read: doc
-	$(OPEN) docs/_build/html/index.html
-
 # Release ####################################################################
 
 .PHONY: authors
@@ -205,11 +185,11 @@ authors:
 	git log --raw | grep "^Author: " | cut -d ' ' -f2- | cut -d '<' -f1 | sed 's/^/- /' | sort | uniq >> AUTHORS.md
 
 .PHONY: register
-register: doc
+register: 
 	$(PYTHON) setup.py register -r pypi
 
 .PHONY: dist
-dist: doc test
+dist: test
 	$(PYTHON) setup.py sdist
 	$(PYTHON) setup.py bdist_wheel
 

@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/jidn/flask-resteasy.svg?branch=master)](https://travis-ci.org/jidn/flask-resteasy.svg?branch=masterp)
-[![Coverage Status](https://coveralls.io/repos/jidn/flask-resteasy/badge.png?branch=master)](https://coveralls.io/repos/jidn/flask-resteasy/badge.png?branch=master)
+[![Coverage Status](http://img.shields.io/coveralls/jidn/flask-resteasy/master.svg)](https://coveralls.io/r/jidn/flask-resteasy)
 
 # Flask-RESTeasy
 

@@ -51,6 +51,7 @@ PEP8RADIUS := $(BIN)/pep8radius
 PEP257 := $(BIN)/pep257
 PYTEST := $(BIN)/py.test
 COVERAGE := $(BIN)/coverage
+ACTIVATE := $(BIN)/activate
 
 # Project settings
 PROJECT := Flask-RESTeasy
@@ -193,7 +194,7 @@ dist: test
 	$(PYTHON) setup.py bdist_wheel
 
 .PHONY: upload
-upload: .git-no-changes doc register
+upload: .git-no-changes register
 	$(PYTHON) setup.py sdist upload -r pypi
 	$(PYTHON) setup.py bdist_wheel upload -r pypi
 

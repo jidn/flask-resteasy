@@ -51,7 +51,6 @@ PEP8RADIUS := $(BIN)/pep8radius
 PEP257 := $(BIN)/pep257
 PYTEST := $(BIN)/py.test
 COVERAGE := $(BIN)/coverage
-ACTIVATE := $(BIN)/activate
 
 # Project settings
 PROJECT := Flask-RESTeasy
@@ -85,7 +84,7 @@ $(EGG_INFO): Makefile setup.py
 	$(PIP) install -e .
 	touch $(EGG_INFO)  # flag to indicate package is installed
 
-.ONY: .virtualenv
+.PHONY: .virtualenv
 .virtualenv: $(PIP)
 $(PIP):
 	$(SYS_VIRTUALENV) --python $(SYS_PYTHON) $(ENV)

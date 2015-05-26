@@ -1,21 +1,18 @@
-import logging
 try:
     from mock import Mock
 except:
     # python3
     from unittest.mock import Mock
-from flask import Flask, abort, make_response, request, url_for, views
+from flask import Flask, abort, make_response, request, url_for
 from flask.json import loads
 from flask_resteasy import Api, ApiResponse, Resource, JSONResponse, unpack
 import pytest
 from .tools import make_foo
 
+
 def to_json(v):
     return loads(v.data)
 
-#@pytest.fixture
-#def Foo():
-#    return make_foo()
 
 class TestHelpers(object):
     def test_unpack(self):
@@ -41,6 +38,7 @@ class TestHelpers(object):
             assert resp.status_code == 201
             assert resp.headers['Content-Type'] == 'application/json'
             assert loads(resp.data) == "hi"
+
 
 class TestPrefixes(object):
     """Ensure the Blueprint, Api, Resource sequence of prefix and url are right
@@ -297,7 +295,7 @@ class TestAPI(object):
         resource.get = Mock()
         with app.test_request_context("/foo"):
             resource.get.return_value = make_response('')
-            rv = resource.dispatch_request()
+            resource.dispatch_request()
 
     def test_resource_error(self):
         app = Flask(__name__)

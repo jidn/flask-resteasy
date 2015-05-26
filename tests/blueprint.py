@@ -11,7 +11,6 @@ from flask_resteasy import Api, Resource
 from .tools import make_foo
 
 
-
 def setup_blueprint_api(resource, bp=None, ap=None, rp=None):
     blueprint = Blueprint('test', __name__, url_prefix=bp)
     api = Api(blueprint, prefix=ap)
@@ -19,6 +18,7 @@ def setup_blueprint_api(resource, bp=None, ap=None, rp=None):
     app = Flask(__name__, static_folder=None)
     app.register_blueprint(blueprint, url_prefix=rp)
     return app, api
+
 
 def setup_api_blueprint(resource, bp=None, ap=None, rp=None):
     api = Api(None, prefix=ap)

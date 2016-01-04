@@ -19,7 +19,7 @@ setup(
     name='Flask-RESTeasy',
     author='Clinton James',
     author_email='clinton.james@anuit.com',
-    url='https://www.github.com/jidn/flask-restful/',
+    url='https://www.github.com/jidn/flask-resteasy/',
     download_url='https://github.com/jidn/flask-resteasy/tarball/'+__version__,
     description='Create easy REST APIs with Flask',
     license='Apache License 2.0',

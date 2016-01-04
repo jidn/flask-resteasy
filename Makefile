@@ -4,8 +4,9 @@
 #
 # Python settings
 ifndef TRAVIS
-	PYTHON_MAJOR := 3
-	PYTHON_MINOR := 4
+	PYTHON_MAJOR := 2
+	PYTHON_MINOR := 7
+	# We assume there is an 'env' directory which 'make env' will build
 	ENV := env
 else
 	# Use the virtualenv provided by Travis
@@ -45,13 +46,9 @@ endif
 # virtualenv executables
 PYTHON := $(BIN)/python
 PIP := $(BIN)/pip
-PEP8 := $(BIN)/pep8
 FLAKE8 := $(BIN)/flake8
-PEP8RADIUS := $(BIN)/pep8radius
 PEP257 := $(BIN)/pep257
-PYTEST := $(BIN)/py.test
 COVERAGE := $(BIN)/coverage
-ACTIVATE := $(BIN)/activate
 
 # Project settings
 PROJECT := Flask-RESTeasy
@@ -78,110 +75,97 @@ $(ALL): $(SOURCES)
 ci: test
 
 # Environment Installation ###################################################
+.PHONY: env .virtualenv depends .depends-ci .depends-dev
 
-.PHONY: env
 env: .virtualenv $(EGG_INFO)
 $(EGG_INFO): Makefile setup.py
 	$(PIP) install -e .
 	touch $(EGG_INFO)  # flag to indicate package is installed
 
-.PHONY: .virtualenv
-.virtualenv: $(PIP)
+.virtualenv: $(PIP) #requirements.txt
 $(PIP):
 	$(SYS_VIRTUALENV) --python $(SYS_PYTHON) $(ENV)
+	@echo "Created virtual environment"
 
-.PHONY: depends
+#requirements.txt:
+#	$(PIP) install --upgrade -r requirements.txt
+
+
 depends: .depends-ci .depends-dev
 
-.PHONY: .depends-ci
 .depends-ci: env Makefile $(DEPENDS_CI)
 $(DEPENDS_CI): Makefile tests/requirements.txt
 	$(PIP) install --upgrade flake8 pep257
 	$(PIP) install -r tests/requirements.txt
 	touch $(DEPENDS_CI)  # flag to indicate dependencies are installed
 
-.PHONY: .depends-dev
 .depends-dev: env Makefile $(DEPENDS_DEV)
 $(DEPENDS_DEV): Makefile
-	$(PIP) install --upgrade wheel  # pep8radius pygments wheel
+#	$(PIP) install --upgrade wheel  # pygments wheel
 	touch $(DEPENDS_DEV)  # flag to indicate dependencies are installed
 
 # Static Analysis ############################################################
+.PHONY: check flake8 pep257
 
-.PHONY: check
 check: flake8 pep257
 
-PEP8_IGNORED := E501,E123
+PEP8_IGNORED := E501,E123,D104,D203
 
-.PHONY: pep8
-pep8: .depends-ci
-	$(PEP8) $(PACKAGE) tests --ignore=$(PEP8_IGNORED)
-
-.PHONY: flake8
 flake8: .depends-ci
 	$(FLAKE8) $(PACKAGE) tests --ignore=$(PEP8_IGNORED)
 
-.PHONY: pep257
 pep257: .depends-ci
-	$(PEP257) $(PACKAGE)
-
-.PHONY: fix
-fix: .depends-dev
-	$(PEP8RADIUS) --docformatter --in-place
+	$(PEP257) $(PACKAGE) tests --ignore=$(PEP8_IGNORED)
 
 # Testing ####################################################################
+.PHONY: test pdb htmlcov
+PYTESTER := $(BIN)/py.test
 
-PYTEST_OPTS := --cov $(PACKAGE) \
+PYTESTER_OPTS := --cov $(PACKAGE) \
 			   --cov-report term-missing \
 			   --cov-report html 
 
-.PHONY: test
 test: .depends-ci
-	$(PYTEST) tests/*.py $(PYTEST_OPTS)
+	$(PYTESTER) tests/*.py $(PYTESTER_OPTS)
 
-.PHONY: pdb
 pdb: .depends-ci
-	$(PYTEST) tests/*.py $(PYTEST_OPTS) -x --pdb
+	$(PYTESTER) tests/*.py $(PYTESTER_OPTS) -x --pdb
 
-.PHONY: htmlcov
 htmlcov: test
 	$(COVERAGE) html
 	$(OPEN) htmlcov/index.html
 
 # Cleanup ####################################################################
+.PHONY: clean clean-env clean-all .clean-build .clean-test .clean-dist
 
-.PHONY: clean
 clean: .clean-dist .clean-test .clean-build
 	rm -rf $(ALL)
 
-.PHONY: clean-env
 clean-env: clean
 	rm -rf $(ENV)
+	rm -rf .cache
 
-.PHONY: clean-all
 clean-all: clean clean-env
 
-.PHONY: .clean-build
 .clean-build:
 	find tests -name '*.pyc' -delete
 	find -name $(PACKAGE)c -delete
 	find tests -name '__pycache__' -delete
 	rm -rf $(EGG_INFO)
 
-.PHONY: .clean-test
 .clean-test:
 	rm -rf .coverage
+	rm -rf htmlcov
 	rm -f test.log
 
-.PHONY: .clean-dist
 .clean-dist:
 	rm -rf dist build
 
 # Release ####################################################################
+.PHONY: authors register dist upload .git-no-changes
 
-.PHONY: authors
 authors:
-	echo "Authors\n=======\n\nA huge thanks to all of our contributors:\n\n" > AUTHORS.md
+	@echo -e "Authors\n=======\n\nA huge thanks to all of our contributors:\n\n" > AUTHORS.md
 	git log --raw | grep "^Author: " | cut -d ' ' -f2- | cut -d '<' -f1 | sed 's/^/- /' | sort | uniq >> AUTHORS.md
 
 .PHONY: register
@@ -202,23 +186,22 @@ upload: .git-no-changes register
 .git-no-changes:
 	@if git diff --name-only --exit-code;         \
 	then                                          \
-		echo Git working copy is clean...;        \
+		@echo Git working copy is clean...;       \
 	else                                          \
-		echo ERROR: Git working copy is dirty!;   \
-		echo Commit your changes and try again.;  \
+		@echo ERROR: Git working copy is dirty!;  \
+		@echo Commit your changes and try again.;  \
 		exit -1;                                  \
 	fi;
 
 # System Installation ########################################################
+.PHONY: develop install download
+# Is this section really needed?
 
-.PHONY: develop
 develop:
 	$(SYS_PYTHON) setup.py develop
 
-.PHONY: install
 install:
 	$(SYS_PYTHON) setup.py install
 
-.PHONY: download
 download:
-	pip install $(PROJECT)
+	$(PIP) install $(PROJECT)

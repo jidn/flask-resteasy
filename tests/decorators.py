@@ -1,3 +1,4 @@
+"""Testing decorators making life easier."""
 import inspect
 # try:
 #     from mock import Mock, patch
@@ -33,8 +34,7 @@ def add_header(header, value=None):
 
 
 def append_header(header, value):
-    """Append to a header
-    """
+    """Append to a header."""
     def foo_header(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -49,8 +49,10 @@ def append_header(header, value):
 
 
 def return_values(store):
-    """Pulls out what code called this decorator assuming all decorators
-     in the chain use the name 'wrapper' as we do
+    """Get decorator caller.
+
+    Pulls out what code called this decorator assuming all decorators
+    in the chain use the name 'wrapper' as we do.
     """
     def decorator(func):
         @wraps(func)
@@ -71,9 +73,11 @@ def return_values(store):
 
 
 class TestDecorators(object):
+    """Lets test some decorators."""
 
     def test_decorator_heirachy(self):
-        """
+        """Test a decorator heirachy.
+
         api = Api(app, decorators=[F('api')])
         @api.add_resource('/foo', decorators=[F('add')])
         class Decorator(Resource):
@@ -82,7 +86,6 @@ class TestDecorators(object):
             @F('method')
             def get(self):
                 return {}
-
         """
         AH = partial(append_header, 'x-trace')
         app = Flask(__name__)
@@ -103,7 +106,8 @@ class TestDecorators(object):
             assert rv.headers['X-TRACE'] == "m2 m1 r1 r2 a1 a2 A1 A2"
 
     def test_decorator_view_response_types(self):
-        """
+        """Testing decorated view responses.
+
         api = Api(app, decorators=[decorator_1])
         class Decorator(Resource, decorators=[decorator_2]):
             decorators = [decorator_3]

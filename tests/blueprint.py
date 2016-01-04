@@ -1,3 +1,4 @@
+"""Testing blueprints with API."""
 try:
     from mock import Mock
 except:
@@ -12,6 +13,7 @@ from .tools import make_foo
 
 
 def setup_blueprint_api(resource, bp=None, ap=None, rp=None):
+    """Create blueprint then API."""
     blueprint = Blueprint('test', __name__, url_prefix=bp)
     api = Api(blueprint, prefix=ap)
     api.add_resource(resource, '/foo', endpoint='foo')
@@ -21,6 +23,7 @@ def setup_blueprint_api(resource, bp=None, ap=None, rp=None):
 
 
 def setup_api_blueprint(resource, bp=None, ap=None, rp=None):
+    """Create API without blueprint, then init with blueprint."""
     api = Api(None, prefix=ap)
     api.add_resource(resource, '/foo', endpoint='foo')
     blueprint = Blueprint('test', __name__, url_prefix=bp)
@@ -31,8 +34,11 @@ def setup_api_blueprint(resource, bp=None, ap=None, rp=None):
 
 
 class TestBlueprint(object):
-    """Ensure the Blueprint, Api, Resource sequence of prefix and url are right
+    """Test blueprints.
+
+    Ensure the Blueprint, Api, Resource sequence of prefix and url are right
     """
+
     prefix_params = (
         (None, None, None, '/foo'),
         ('/bp', None, None, '/bp/foo'),
@@ -41,6 +47,7 @@ class TestBlueprint(object):
         )
 
     def test_add_with_app_blueprint(self):
+        """Add with app blueprint."""
         app = Flask(__name__)
         blueprint = Blueprint('test', __name__)
         app.register_blueprint(blueprint)
@@ -59,6 +66,7 @@ class TestBlueprint(object):
         assert err.value.args[0].startswith('Blueprint is already registered')
 
     def test_add_resource_endpoint(self):
+        """Add resource endpoint."""
         blueprint = Blueprint('test', __name__)
         api = Api(blueprint)
         view = Mock(**{'as_view.return_value': Mock(__name__='test_view')})
@@ -68,6 +76,7 @@ class TestBlueprint(object):
         view.as_view.assert_called_with('bar')
 
     def test_add_resource_endpoint_after_registration(self):
+        """Add resource endpoint after registration."""
         blueprint = Blueprint('test', __name__)
         api = Api(blueprint)
         app = Flask(__name__)
@@ -80,7 +89,8 @@ class TestBlueprint(object):
                                        setup_api_blueprint))
     @pytest.mark.parametrize('bp,ap,rp,url', prefix_params)
     def test_prefix(self, bp, ap, rp, url, setup):
-        """Test the various prefix possibilities with blueprint available
+        """Test various prefix possibilities with blueprint available.
+
         at Api creation time.
         bp: Blueprint(..., url_prefix=bp)
         ap: Api(..., prefix=ap)
@@ -105,6 +115,7 @@ class TestBlueprint(object):
             assert loads(rv.data) == resource.resp
 
     def test_add_resource_kwargs(self):
+        """add resource kwargs."""
         bp = Blueprint('bp', __name__)
         api = Api(bp)
 
@@ -118,6 +129,7 @@ class TestBlueprint(object):
             assert loads(c.get('/foo').data) == "bar"
 
     def test_resource_return_values(self):
+        """resource return values."""
         app = Flask(__name__)
         app.config['DEBUG'] = True
         api = Api(app)
@@ -151,6 +163,7 @@ class TestBlueprint(object):
                 warnings.warn("skipping tests as flask app is DEBUG")
 
     def test_resource_exception_response(self):
+        """resource exception response."""
         app = Flask(__name__)
         app.config['DEBUG'] = True
 

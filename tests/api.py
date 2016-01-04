@@ -1,3 +1,4 @@
+"""API testing."""
 try:
     from mock import Mock
 except:
@@ -11,21 +12,27 @@ from .tools import make_foo
 
 
 def to_json(v):
+    """Simple helper to get JSON from object."""
     return loads(v.data)
 
 
 class TestHelpers(object):
+    """Helper function to include in other classes."""
+
     def test_unpack(self):
+        """Test unpack."""
         assert ('hi', 200, {}) == unpack('hi')
         assert ('hi', 200, {}) == unpack(('hi', 200))
         assert ('hi', 200, {}) == unpack(('hi', None))
         assert ('hi', 200, {'X': 'hi'}) == unpack(('hi', 200, {'X': 'hi'}))
 
     def test_resource_without_endpoint(self):
+        """Resource without endpoint."""
         resource = make_foo()
         assert not hasattr(resource, 'endpoint')
 
     def test_using_ApiResponse(self):
+        """ApiResponse must be subclassed."""
         with Flask(__name__).app_context():
             with pytest.raises(NotImplementedError) as err:
                 ApiResponse().pack('hi', 200)
@@ -33,6 +40,7 @@ class TestHelpers(object):
             assert err.value.args[0] == "You must subclass from ApiResponse."
 
     def test_json(self):
+        """JSON response."""
         with Flask(__name__).app_context():
             resp = JSONResponse().pack('hi', 201)
             assert resp.status_code == 201
@@ -41,12 +49,16 @@ class TestHelpers(object):
 
 
 class TestPrefixes(object):
-    """Ensure the Blueprint, Api, Resource sequence of prefix and url are right
-    """
+    """Are Blueprint, Api, Resource sequence of prefix and url correct."""
+
     resource_url = '/hi'
 
     @pytest.mark.parametrize('api_prefix', [None, '/api'])
     def test_with_app(self, api_prefix):
+        """API creation with different prefixes.
+
+        API created with app.
+        """
         expecting_url = (api_prefix or '') + TestPrefixes.resource_url
         resource = make_foo()
         app = Flask(__name__, static_folder=None)
@@ -66,6 +78,10 @@ class TestPrefixes(object):
 
     @pytest.mark.parametrize('api_prefix', [None, '/api'])
     def test_with_init_app(self, api_prefix):
+        """API creation with different prefixes.
+
+        API attached after app creation.
+        """
         expecting_url = (api_prefix or '') + TestPrefixes.resource_url
         resource = make_foo()
         api = Api(prefix=api_prefix)
@@ -86,14 +102,20 @@ class TestPrefixes(object):
 
 
 class TestAPI(object):
+    """Test the API object.
+
+    Is it working as expected?
+    """
 
     def test_api(self):
+        """Ensure endpoint is created."""
         app = Mock()
         app.configure_mock(**{'record.side_effect': AttributeError})
         api = Api(app, prefix='/foo')
         assert api.prefix == '/foo'
 
     def test_api_delayed_initialization(self):
+        """API delayed initialization."""
         app = Flask(__name__)
         api = Api()
         resource = make_foo()
@@ -124,6 +146,7 @@ class TestAPI(object):
             assert to_json(c.get('/api2')) == resource.resp
 
     def test_api_same_endpoint(self):
+        """API reuse endpoint."""
         app = Flask(__name__)
         api = Api(app, prefix='/v1')
 
@@ -137,6 +160,7 @@ class TestAPI(object):
         assert err.value.args[0].startswith("Endpoint 'baz' is already")
 
     def test_api_same_url(self):
+        """API same url."""
         # TODO Should this pop an error?
         app = Flask(__name__)
         api = Api(app, prefix='/v1')
@@ -159,6 +183,7 @@ class TestAPI(object):
             assert loads(rv.data) == "foo"
 
     def test_handle_api_error(self):
+        """Handle API errors."""
         api = Api()
 
         @api.resource('/api', endpoint='api')
@@ -184,6 +209,7 @@ class TestAPI(object):
             assert 'msg' in data
 
     def test_handle_non_api_error(self):
+        """Handle non API errors."""
         app = Flask(__name__)
         Api(app)
 
@@ -193,6 +219,7 @@ class TestAPI(object):
             assert rv.headers['Content-Type'] == 'text/html'
 
     def test_url_for(self):
+        """url_for test."""
         app = Flask(__name__)
         api = Api(app)
         resource = make_foo()
@@ -201,6 +228,11 @@ class TestAPI(object):
             assert api.url_for(resource, idx=5) == '/greeting/5'
 
     def test_add_the_same_resource_on_different_endpoint(self):
+        """Add resource on different endpoints.
+
+        We should be able to add the same resource multiple times as long
+        as we use different endpoints.
+        """
         app = Flask(__name__)
         api = Api(app)
         app.config['DEBUG'] = True
@@ -221,6 +253,7 @@ class TestAPI(object):
             assert foo2.data == b'"foo1"'
 
     def test_add_resource_endpoint(self):
+        """Add resource endpoint."""
         app = Mock(Flask)
         app.view_functions = {}
         view = Mock()
@@ -232,6 +265,7 @@ class TestAPI(object):
         view.as_view.assert_called_with('bar')
 
     def test_resource_decorator(self):
+        """Resource decorator."""
         app = Flask(__name__)
         api = Api(app)
 
@@ -244,6 +278,7 @@ class TestAPI(object):
             c.get('/api').data == 'foo'
 
     def test_add_resource_kwargs(self):
+        """Add resource kwargs."""
         app = Flask(__name__)
         app.config['DEBUG'] = True
         api = Api(app)
@@ -256,6 +291,7 @@ class TestAPI(object):
             assert loads(c.get('/bar').data) == "bar"
 
     def test_output_unpack(self):
+        """Output unpack for response."""
         def make_empty_response():
             return {'foo': 'bar'}
 
@@ -269,7 +305,7 @@ class TestAPI(object):
             assert resp.data.decode() == '{"foo": "bar"}'
 
     def test_output_func(self):
-
+        """Output function."""
         def make_empty_response():
             return make_response('')
 
@@ -283,6 +319,7 @@ class TestAPI(object):
             assert resp.data.decode() == ''
 
     def test_resource(self):
+        """Resource."""
         app = Flask(__name__)
         resource = Resource()
         resource.get = Mock()
@@ -290,6 +327,7 @@ class TestAPI(object):
             resource.dispatch_request()
 
     def test_resource_resp(self):
+        """Resource response."""
         app = Flask(__name__)
         resource = Resource()
         resource.get = Mock()
@@ -298,6 +336,7 @@ class TestAPI(object):
             resource.dispatch_request()
 
     def test_resource_error(self):
+        """Unimplemented method."""
         app = Flask(__name__)
         resource = Resource()
         with app.test_request_context("/foo"):
@@ -306,6 +345,7 @@ class TestAPI(object):
             assert err.value.args[0].startswith('Unimplemented method')
 
     def test_resource_head(self):
+        """Check for a HEAD."""
         app = Flask(__name__)
         resource = Resource()
         with app.test_request_context("/foo", method="HEAD"):
@@ -313,6 +353,7 @@ class TestAPI(object):
                 resource.dispatch_request()
 
     def test_fr_405(self):
+        """HTTP 405 response."""
         app = Flask(__name__)
         api = Api(app)
         foo = make_foo()
@@ -325,6 +366,7 @@ class TestAPI(object):
 
 
 class TestJSON(object):
+    """Testing JSON response."""
 
     # def test_will_prettyprint_json_in_debug_mode(self):
     #     app = Flask(__name__)
@@ -348,7 +390,7 @@ class TestJSON(object):
     #         assert rv.data.endswith(b'\n') is True
 
     def test_will_pass_options_to_json(self):
-
+        """Are we getting JSON."""
         resource = make_foo()
         app = Flask(__name__)
         api = Api(app, response=JSONResponse(indent=123))
@@ -365,6 +407,8 @@ class TestJSON(object):
 
     @pytest.mark.xfail
     def test_datetime(self):
-        """What do I expect the datetime.datetime to be? rfc822, iso?
+        """Testing datetime.
+
+        What do I expect the datetime.datetime to be? rfc822, iso?
         """
         assert False

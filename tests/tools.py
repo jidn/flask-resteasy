@@ -1,3 +1,4 @@
+"""Testing tools."""
 import os
 import logging
 import inspect
@@ -13,12 +14,14 @@ logger.addHandler(handler)
 
 
 def stack_names(starting=1, cnt=3):
+    """Give me the last 'cnt' stack names."""
     f = inspect.stack()
     return [(os.path.basename(x.filename), x.lineno, x.function) for x in
             [inspect.getframeinfo(_[0]) for _ in f[starting:starting + cnt]]]
 
 
 def make_foo(starting=1):
+    """Stupid class factory."""
     class Foo(Resource):
         resp = {'msg': 'foo'}
 

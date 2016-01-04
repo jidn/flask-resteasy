@@ -186,10 +186,10 @@ upload: .git-no-changes register
 .git-no-changes:
 	@if git diff --name-only --exit-code;         \
 	then                                          \
-		@echo Git working copy is clean...;       \
+		echo Git working copy is clean...;        \
 	else                                          \
-		@echo ERROR: Git working copy is dirty!;  \
-		@echo Commit your changes and try again.;  \
+		echo ERROR: Git working copy is dirty!;   \
+		echo Commit your changes and try again.;  \
 		exit -1;                                  \
 	fi;
 

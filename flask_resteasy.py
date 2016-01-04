@@ -63,7 +63,6 @@ def unpack(rv):
 
 
 class Api(object):
-
     """The main entry point for the application.
 
     You need to initialize it with a Flask Application: ::
@@ -346,7 +345,6 @@ class Api(object):
 
 
 class ApiResponse(object):
-
     """Prototype for creating response from MethodView call.
 
     Subclass to create a response handler.  See :class:`JSONResponse`
@@ -373,7 +371,6 @@ class ApiResponse(object):
 
 
 class JSONResponse(ApiResponse):
-
     """JSON response creator."""
 
     content_type = 'application/json'
@@ -406,7 +403,6 @@ class JSONResponse(ApiResponse):
 
 
 class Resource(MethodView):
-
     """Represents an abstract RESTeasy resource.
 
     Concrete resources should extend from this class and expose methods

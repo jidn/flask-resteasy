@@ -2,16 +2,21 @@
 # For more information on creating packages for PyPI see the writeup at
 # http://peterdowns.com/posts/first-time-with-pypi.html
 #
+.PHONY: check test clean clean-all upload
+PROJECT := Flask-RESTeasy
+PACKAGE := flask_resteasy.py
+
 # Python settings
 ifndef TRAVIS
-	PYTHON_MAJOR := 2
-	PYTHON_MINOR := 7
+	PYTHON_MAJOR := 3
+	PYTHON_MINOR := 4
 	# We assume there is an 'env' directory which 'make env' will build
 	ENV := env
 else
 	# Use the virtualenv provided by Travis
 	ENV = $(VIRTUAL_ENV)
 endif
+
 
 # System paths
 # I haven't developed for windows for a long time, mileage may vary.
@@ -51,8 +56,6 @@ PEP257 := $(BIN)/pep257
 COVERAGE := $(BIN)/coverage
 
 # Project settings
-PROJECT := Flask-RESTeasy
-PACKAGE := flask_resteasy.py
 SOURCES := Makefile setup.py $(shell find $(PACKAGE) -name '*.py')
 EGG_INFO := $(subst -,_,$(PROJECT)).egg-info
 
@@ -78,34 +81,34 @@ ci: test
 .PHONY: env .virtualenv depends .depends-ci .depends-dev
 
 env: .virtualenv $(EGG_INFO)
-$(EGG_INFO): Makefile setup.py
+$(EGG_INFO): setup.py
 	$(PIP) install -e .
 	touch $(EGG_INFO)  # flag to indicate package is installed
 
-.virtualenv: $(PIP) #requirements.txt
+.virtualenv: $(PIP) 
 $(PIP):
 	$(SYS_VIRTUALENV) --python $(SYS_PYTHON) $(ENV)
-	@echo "Created virtual environment"
 
 #requirements.txt:
 #	$(PIP) install --upgrade -r requirements.txt
+#	@echo "Created virtual environment"
 
 
 depends: .depends-ci .depends-dev
 
-.depends-ci: env Makefile $(DEPENDS_CI)
-$(DEPENDS_CI): Makefile tests/requirements.txt
+.depends-ci: env $(DEPENDS_CI)
+$(DEPENDS_CI): tests/requirements.txt
 	$(PIP) install --upgrade flake8 pep257
 	$(PIP) install -r tests/requirements.txt
 	touch $(DEPENDS_CI)  # flag to indicate dependencies are installed
 
-.depends-dev: env Makefile $(DEPENDS_DEV)
-$(DEPENDS_DEV): Makefile
+.depends-dev: env $(DEPENDS_DEV)
+$(DEPENDS_DEV):
 #	$(PIP) install --upgrade wheel  # pygments wheel
 	touch $(DEPENDS_DEV)  # flag to indicate dependencies are installed
 
 # Static Analysis ############################################################
-.PHONY: check flake8 pep257
+.PHONY: flake8 pep257
 
 check: flake8 pep257
 
@@ -118,7 +121,7 @@ pep257: .depends-ci
 	$(PEP257) $(PACKAGE) tests --ignore=$(PEP8_IGNORED)
 
 # Testing ####################################################################
-.PHONY: test pdb coverage
+.PHONY: pdb coverage
 PYTESTER := $(BIN)/py.test
 
 PYTESTER_OPTS := --cov $(PACKAGE) \
@@ -136,7 +139,7 @@ coverage: test
 	$(OPEN) htmlcov/index.html
 
 # Cleanup ####################################################################
-.PHONY: clean clean-env clean-all .clean-build .clean-test .clean-dist
+.PHONY: clean-env .clean-build .clean-test .clean-dist
 
 clean: .clean-dist .clean-test .clean-build
 	rm -rf $(ALL)

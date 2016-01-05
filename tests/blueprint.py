@@ -33,7 +33,7 @@ def setup_api_blueprint(resource, bp=None, ap=None, rp=None):
     # It should fail if tried again
     with pytest.raises(ValueError) as e_info:
         app.register_blueprint(blueprint, url_prefix=rp)
-    assert e_info.value.message.endswith("only be registered once.")
+    assert str(e_info).endswith("only be registered once.")
     return app, api
 
 

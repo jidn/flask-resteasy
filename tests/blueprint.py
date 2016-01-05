@@ -30,6 +30,10 @@ def setup_api_blueprint(resource, bp=None, ap=None, rp=None):
     api.init_app(blueprint)
     app = Flask(__name__, static_folder=None)
     app.register_blueprint(blueprint, url_prefix=rp)
+    # It should fail if tried again
+    with pytest.raises(ValueError) as e_info:
+        app.register_blueprint(blueprint, url_prefix=rp)
+    assert e_info.value.message.endswith("only be registered once.")
     return app, api
 
 
@@ -97,8 +101,6 @@ class TestBlueprint(object):
         rp: app.register_blueprint(..., url_prefix=rp)
         """
         resource = make_foo()
-
-        assert not hasattr(resource, 'endpoint')
         app, api = setup(resource, bp, ap, rp)
 
         assert 'foo' in api.endpoints
@@ -107,6 +109,7 @@ class TestBlueprint(object):
             assert request.endpoint == 'test.foo'
             assert url_for('.foo') == url
             assert url_for(request.endpoint) == url
+            assert api.url_for(resource) == url
 
         with app.test_client() as c:
             rv = c.get(url)

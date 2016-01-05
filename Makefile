@@ -118,7 +118,7 @@ pep257: .depends-ci
 	$(PEP257) $(PACKAGE) tests --ignore=$(PEP8_IGNORED)
 
 # Testing ####################################################################
-.PHONY: test pdb htmlcov
+.PHONY: test pdb coverage
 PYTESTER := $(BIN)/py.test
 
 PYTESTER_OPTS := --cov $(PACKAGE) \
@@ -131,7 +131,7 @@ test: .depends-ci
 pdb: .depends-ci
 	$(PYTESTER) tests/*.py $(PYTESTER_OPTS) -x --pdb
 
-htmlcov: test
+coverage: test
 	$(COVERAGE) html
 	$(OPEN) htmlcov/index.html
 

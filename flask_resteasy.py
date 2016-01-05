@@ -36,7 +36,7 @@ from flask.helpers import _endpoint_from_view_func
 from werkzeug.wrappers import Response as ResponseBase
 
 
-__version__ = "0.0.3"
+__version__ = "0.0.3.1"
 
 
 def unpack(rv):

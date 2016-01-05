@@ -1,5 +1,8 @@
-[![Build Status](https://travis-ci.org/jidn/flask-resteasy.svg?branch=master)](https://travis-ci.org/jidn/flask-resteasy.svg?branch=masterp)
-[![Coverage Status](http://img.shields.io/coveralls/jidn/flask-resteasy/master.svg)](https://coveralls.io/r/jidn/flask-resteasy)
+[![build status](https://travis-ci.org/jidn/flask-resteasy.svg?branch=master)](https://travis-ci.org/jidn/flask-resteasy.svg?branch=masterp)
+[![License](http://img.shields.io/pypi/l/flask-resteasy.svg)]
+[![version](http://img.shields.io/pypi/v/flask-resteasy.svg)]
+[![coverage](http://img.shields.io/coveralls/jidn/flask-resteasy/master.svg)](https://coveralls.io/r/jidn/flask-resteasy)
+[![downloads](http://img.shields.io/pypi/dm/flask-resteasy.svg)]
 
 # Flask-RESTeasy
 

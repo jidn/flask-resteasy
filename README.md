@@ -1,8 +1,8 @@
 [![build status](https://travis-ci.org/jidn/flask-resteasy.svg?branch=master)](https://travis-ci.org/jidn/flask-resteasy.svg?branch=masterp)
-[![License](http://img.shields.io/pypi/l/flask-resteasy.svg)]
-[![version](http://img.shields.io/pypi/v/flask-resteasy.svg)]
+![version](http://img.shields.io/pypi/v/flask-resteasy.svg)
+![license](http://img.shields.io/pypi/l/flask-resteasy.svg)
 [![coverage](http://img.shields.io/coveralls/jidn/flask-resteasy/master.svg)](https://coveralls.io/r/jidn/flask-resteasy)
-[![downloads](http://img.shields.io/pypi/dm/flask-resteasy.svg)]
+![downloads](http://img.shields.io/pypi/dm/flask-resteasy.svg)
 
 # Flask-RESTeasy
 
@@ -24,12 +24,13 @@ look very familiar.
 # Install
 
 For install you can use pip:
-```
-pip install flask_resteasy
+
+```console
+$ pip install flask_resteasy
 ```
 
 # QuickStart
-```
+```python
 from flask import Flask
 from flask.ext import resteasy
 
@@ -46,4 +47,16 @@ class HelloWorld(resteasy.Resource):
 
 if __name__ == '__main__':
     app.run(debug=True)
+```
+
+Execute that code and you have a running server on port 5000.  If you get an error, you probably have something else running on that port.  Either stop the other process or change the port in your Flask app.
+
+Now either check with a browser, or use the following commands.
+
+```console
+$ curl http://localhost:5000
+{"msg": "Hello world"}
+
+$ curl http://localhost:5000 -X "DELETE"
+{"msg": "Sorry Dave."}
 ```

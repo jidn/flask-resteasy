@@ -155,6 +155,7 @@ clean-all: clean clean-env
 	find -name $(PACKAGE)c -delete
 	find tests -name '__pycache__' -delete
 	rm -rf $(EGG_INFO)
+	rm -rf __pycache__
 
 .clean-test:
 	rm -rf .coverage

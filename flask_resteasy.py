@@ -31,12 +31,12 @@ from itertools import chain
 from functools import partial, wraps
 import flask
 from flask.json import dumps
-from flask.views import MethodView
+from flask.views import MethodView as Resource
 from flask.helpers import _endpoint_from_view_func
 from werkzeug.wrappers import Response as ResponseBase
 
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 
 
 def unpack(rv):
@@ -373,6 +373,7 @@ class ApiResponse(object):
 class JSONResponse(ApiResponse):
     """JSON response creator."""
 
+    autocorrect_location_header = False
     content_type = 'application/json'
 
     def __init__(self, encoder=None, **kwargs):
@@ -401,30 +402,3 @@ class JSONResponse(ApiResponse):
         resp.headers.extend(headers)
         return resp
 
-
-class Resource(MethodView):
-    """Represents an abstract RESTeasy resource.
-
-    Concrete resources should extend from this class and expose methods
-    for each supported HTTP method: get, post, delete, put, and patch.
-    If a resource is invoked without a supported HTTP method, the API
-    will return with a status 405 Method Not Allowed. Otherwise the
-    appropriate method is called and passed all arguments from the url
-    rule used when adding the resource to an Api instance. See
-    :meth:`~flask.ext.resteasy.Api.add_resource` for details.
-    """
-
-    def dispatch_request(self, *args, **kwargs):
-        """Detect duplicate decorators.
-
-        Assert all decorators in self.decorators of MethodView are
-        unique.
-
-        TODO Could a decorator itself provide this fuctionality? If so
-        we could eliminate the class and just provide Resource as a
-        renamed :class:`flask.views.MethodView`
-        """
-        assert len(self.decorators) == len(set(self.decorators)), \
-            'Duplicate decorator calls %s' % self.decorators
-        rv = MethodView.dispatch_request(self, *args, **kwargs)
-        return rv

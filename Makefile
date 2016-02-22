@@ -1,192 +1,179 @@
-# Python Project Makefile - Clinton James
+# github.com/jidn/python-Makefile
+# This helps with creating local virtual environments, requirements,
+# syntax checking, running tests, coverage and uploading packages to PyPI.
+# 
+# This also works with Travis CI
 # For more information on creating packages for PyPI see the writeup at
 # http://peterdowns.com/posts/first-time-with-pypi.html
 #
-.PHONY: check test clean clean-all upload
+.PHONY: help
+help:
+	@echo "env     Create virtualenv and install requirements"
+	@echo "check   Run style checks"
+	@echo "test    Run tests"
+	@echo "pdb     Run tests, but stop at the first unhandled exception."
+	@echo "upload  Upload package to PyPI"
+	@echo "clean clean-all  Clean up and clean up removing virtualenv"
+##############################################################################
 PROJECT := Flask-RESTeasy
 PACKAGE := flask_resteasy.py
-
+# Replace 'requirements.txt' with another filename if needed.
+REQUIREMENTS := $(wildcard requirements.txt)
+# Directory with all the tests
+TESTDIR := tests
+TESTREQUIREMENTS := $(wildcard $(TESTDIR)/requirements.txt)
+##############################################################################
 # Python settings
-ifndef TRAVIS
-	PYTHON_MAJOR := 3
-	PYTHON_MINOR := 4
-	# We assume there is an 'env' directory which 'make env' will build
-	ENV := env
-else
-	# Use the virtualenv provided by Travis
+ifdef TRAVIS
 	ENV = $(VIRTUAL_ENV)
+else
+	PYTHON_VERSION := 
+	ENV := env
 endif
-
 
 # System paths
-# I haven't developed for windows for a long time, mileage may vary.
-PLATFORM := $(shell python -c 'import sys; print(sys.platform)')
-ifneq ($(findstring win32, $(PLATFORM)), )
-	SYS_PYTHON_DIR := C:\\Python$(PYTHON_MAJOR)$(PYTHON_MINOR)
-	SYS_PYTHON := $(SYS_PYTHON_DIR)\\python.exe
-	SYS_VIRTUALENV := $(SYS_PYTHON_DIR)\\Scripts\\virtualenv.exe
-	# https://bugs.launchpad.net/virtualenv/+bug/449537
-	export TCL_LIBRARY=$(SYS_PYTHON_DIR)\\tcl\\tcl8.5
-else
-	SYS_PYTHON := python$(PYTHON_MAJOR)
-	ifdef PYTHON_MINOR
-		SYS_PYTHON := $(SYS_PYTHON).$(PYTHON_MINOR)
-	endif
-	SYS_VIRTUALENV := virtualenv
-endif
-
-# virtualenv paths
-ifneq ($(findstring win32, $(PLATFORM)), )
-	BIN := $(ENV)/Scripts
-	OPEN := cmd /c start
-else
-	BIN := $(ENV)/bin
-	ifneq ($(findstring cygwin, $(PLATFORM)), )
-		OPEN := cygstart
-	else
-		OPEN := xdg-open
-	endif
-endif
+BIN := $(ENV)/bin
+OPEN := xdg-open
+SYS_VIRTUALENV := virtualenv
+SYS_PYTHON := python$(PYTHON_VERSION)
 
 # virtualenv executables
-PYTHON := $(BIN)/python
 PIP := $(BIN)/pip
+PYTHON := $(BIN)/python
 FLAKE8 := $(BIN)/flake8
 PEP257 := $(BIN)/pep257
 COVERAGE := $(BIN)/coverage
+TESTRUN := $(BIN)/py.test
 
 # Project settings
-SOURCES := Makefile setup.py $(shell find $(PACKAGE) -name '*.py')
+SETUP_PY := $(wildcard setup.py)
+SOURCES := Makefile $(SETUP_PY) \
+	       $(shell find $(PACKAGE) -name '*.py')
+TESTS :=   $(shell find $(TESTDIR) -name '*.py')
 EGG_INFO := $(subst -,_,$(PROJECT)).egg-info
 
-# Flags for PHONY targets
-# Are environments/tools installed for continuous integration and development?
+# Flags for environment/tools
+ALL := $(ENV)/.all
 DEPENDS_CI := $(ENV)/.depends-ci
 DEPENDS_DEV := $(ENV)/.depends-dev
-ALL := $(ENV)/.all
-
 # Main Targets ###############################################################
-
-.PHONY: all
-all: depends $(ALL)
+.PHONY: all env
+all: env $(ALL)
 $(ALL): $(SOURCES)
 	$(MAKE) check
-	touch $(ALL)  # flag to indicate all setup steps were successful
+	@touch $@  # flag to indicate all setup steps were successful
 
 # Targets to run on Travis
 .PHONY: ci
 ci: test
 
 # Environment Installation ###################################################
-.PHONY: env .virtualenv depends .depends-ci .depends-dev
-
-env: .virtualenv $(EGG_INFO)
-$(EGG_INFO): setup.py
-	$(PIP) install -e .
-	touch $(EGG_INFO)  # flag to indicate package is installed
-
-.virtualenv: $(PIP) 
+env: $(PIP) $(ENV)/.requirements $(ENV)/.setup.py
 $(PIP):
 	$(SYS_VIRTUALENV) --python $(SYS_PYTHON) $(ENV)
+	@$(MAKE) -s $(ENV)/.requirements
+	@$(MAKE) -s $(ENV)/.setup.py
 
-#requirements.txt:
-#	$(PIP) install --upgrade -r requirements.txt
-#	@echo "Created virtual environment"
+$(ENV)/.requirements: $(REQUIREMENTS)
+ifneq ($(REQUIREMENTS),)
+	$(PIP) install --upgrade -r requirements.txt
+	@echo "Upgrade or install requirements.txt complete."
+endif
+	@touch $@
 
+$(ENV)/.setup.py: $(SETUP_PY)
+ifneq ($(SETUP_PY),)
+	$(PIP) install -e .
+endif
+	@touch $@
 
-depends: .depends-ci .depends-dev
-
-.depends-ci: env $(DEPENDS_CI)
-$(DEPENDS_CI): tests/requirements.txt
-	$(PIP) install --upgrade flake8 pep257
-	$(PIP) install -r tests/requirements.txt
-	touch $(DEPENDS_CI)  # flag to indicate dependencies are installed
-
-.depends-dev: env $(DEPENDS_DEV)
-$(DEPENDS_DEV):
-#	$(PIP) install --upgrade wheel  # pygments wheel
-	touch $(DEPENDS_DEV)  # flag to indicate dependencies are installed
-
-# Static Analysis ############################################################
-.PHONY: flake8 pep257
-
-check: flake8 pep257
+### Static Analysis & Travis CI ##############################################
+.PHONY: check flake8 pep257
 
 PEP8_IGNORED := E501,E123,D104,D203
+check: flake8 pep257
 
-flake8: .depends-ci
-	$(FLAKE8) $(PACKAGE) tests --ignore=$(PEP8_IGNORED)
+$(DEPENDS_CI): env $(TESTREQUIREMENTS)
+	$(PIP) install --upgrade flake8 pep257
+	@touch $@  # flag to indicate dependencies are installed
 
-pep257: .depends-ci
-	$(PEP257) $(PACKAGE) tests --ignore=$(PEP8_IGNORED)
+$(DEPENDS_DEV): env
+	$(PIP) install --upgrade wheel  # pygments wheel
+	@touch $@  # flag to indicate dependencies are installed
 
-# Testing ####################################################################
-.PHONY: pdb coverage
-PYTESTER := $(BIN)/py.test
+flake8: $(DEPENDS_CI)
+	$(FLAKE8) $(PACKAGE) $(TESTDIR) --ignore=$(PEP8_IGNORED)
 
-PYTESTER_OPTS := --cov $(PACKAGE) \
+pep257: $(DEPENDS_CI)
+	$(PEP257) $(PACKAGE) $(TESTDIR) --ignore=$(PEP8_IGNORED)
+
+### Testing ##################################################################
+.PHONY: test pdb coverage
+
+TESTRUN_OPTS := --cov $(PACKAGE) \
 			   --cov-report term-missing \
 			   --cov-report html 
 
-test: .depends-ci
-	$(PYTESTER) tests/*.py $(PYTESTER_OPTS)
+test: env $(DEPENDS_CI) $(TESTS) $(ENV)/requirements-test
+	$(TESTRUN) $(TESTDIR)/*.py $(TESTRUN_OPTS)
 
-pdb: .depends-ci
-	$(PYTESTER) tests/*.py $(PYTESTER_OPTS) -x --pdb
+pdb: env $(DEPENDS_CI) $(TEST) $(ENV)/requirements-test
+	$(TESTRUN) $(TESTDIR)/*.py $(TESTRUN_OPTS) -x --pdb
+
+$(ENV)/requirements-test: $(TESTREQUIREMENTS)
+ifneq ($(TESTREQUIREMENTS),)
+	$(PIP) install --upgrade -r $(TESTREQUIREMENTS)
+	@echo "Testing requirements installed."
+endif
+	@touch $@
 
 coverage: test
 	$(COVERAGE) html
 	$(OPEN) htmlcov/index.html
 
 # Cleanup ####################################################################
-.PHONY: clean-env .clean-build .clean-test .clean-dist
+.PHONY: clean clean-env clean-all .clean-build .clean-test .clean-dist
 
 clean: .clean-dist .clean-test .clean-build
-	rm -rf $(ALL)
+	@rm -rf $(ALL)
 
 clean-env: clean
-	rm -rf $(ENV)
-	rm -rf .cache
+	@rm -rf $(ENV)
 
 clean-all: clean clean-env
 
 .clean-build:
-	find tests -name '*.pyc' -delete
-	find -name $(PACKAGE)c -delete
-	find tests -name '__pycache__' -delete
-	rm -rf $(EGG_INFO)
-	rm -rf __pycache__
+#	@find -name $(PACKAGE).c -delete
+	@find $(TESTDIR) -name '*.pyc' -delete
+	@find $(TESTDIR) -name '__pycache__' -delete
+	@rm -rf $(EGG_INFO)
+	@rm -rf __pycache__
 
 .clean-test:
-	rm -rf .coverage
-	rm -rf htmlcov
-	rm -f test.log
+	@rm -rf .coverage
+#	@rm -f *.log
 
 .clean-dist:
-	rm -rf dist build
+	@rm -rf dist build
 
 # Release ####################################################################
 .PHONY: authors register dist upload .git-no-changes
 
 authors:
-	@echo -e "Authors\n=======\n\nA huge thanks to all of our contributors:\n\n" > AUTHORS.md
+	echo "Authors\n=======\n\nA huge thanks to all of our contributors:\n\n" > AUTHORS.md
 	git log --raw | grep "^Author: " | cut -d ' ' -f2- | cut -d '<' -f1 | sed 's/^/- /' | sort | uniq >> AUTHORS.md
 
-.PHONY: register
 register: 
 	$(PYTHON) setup.py register -r pypi
 
-.PHONY: dist
 dist: test
 	$(PYTHON) setup.py sdist
 	$(PYTHON) setup.py bdist_wheel
 
-.PHONY: upload
 upload: .git-no-changes register
 	$(PYTHON) setup.py sdist upload -r pypi
 	$(PYTHON) setup.py bdist_wheel upload -r pypi
 
-.PHONY: .git-no-changes
 .git-no-changes:
 	@if git diff --name-only --exit-code;         \
 	then                                          \
@@ -202,10 +189,10 @@ upload: .git-no-changes register
 # Is this section really needed?
 
 develop:
-	$(SYS_PYTHON) setup.py develop
+	$(PYTHON) setup.py develop
 
 install:
-	$(SYS_PYTHON) setup.py install
+	$(PYTHON) setup.py install
 
 download:
 	$(PIP) install $(PROJECT)

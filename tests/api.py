@@ -368,27 +368,6 @@ class TestAPI(object):
 class TestJSON(object):
     """Testing JSON response."""
 
-    # def test_will_prettyprint_json_in_debug_mode(self):
-    #     app = Flask(__name__)
-    #     app.config['DEBUG'] = True
-    #     api = Api(app)
-    #     api.add_resource(Foo, '/foo', endpoint='bar')
-    #
-    #     with app.test_client() as client:
-    #         rv = client.get('/foo')
-    #
-    #         # Python's dictionaries have random order (as of "new" Pythons,
-    #         # anyway), so we can't verify the actual output here.  We just
-    #         # assert that they're properly prettyprinted.
-    #         lines = rv.data.splitlines()
-    #         lines = [line.decode() for line in lines]
-    #         assert lines[0] == "{"
-    #         assert lines[1].startswith('    ') is True
-    #         assert lines[3] == "}"
-    #
-    #         # Assert our trailing newline.
-    #         assert rv.data.endswith(b'\n') is True
-
     def test_will_pass_options_to_json(self):
         """Are we getting JSON."""
         resource = make_foo()

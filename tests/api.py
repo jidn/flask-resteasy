@@ -36,7 +36,6 @@ class TestHelpers(object):
         with Flask(__name__).app_context():
             with pytest.raises(NotImplementedError) as err:
                 ApiResponse().pack('hi', 200)
-#            assert err.value.message == "You must subclass from ApiResponse."
             assert err.value.args[0] == "You must subclass from ApiResponse."
 
     def test_json(self):

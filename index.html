@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Flask-RESTeasy by jidn</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/github-light.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1 class="header">Flask-RESTeasy</h1>
+        <p class="header">Flask extension for easy REST APIs</p>
+
+        <ul>
+          <li class="download"><a class="buttons" href="https://github.com/jidn/flask-resteasy/zipball/master">Download ZIP</a></li>
+          <li class="download"><a class="buttons" href="https://github.com/jidn/flask-resteasy/tarball/master">Download TAR</a></li>
+          <li><a class="buttons github" href="https://github.com/jidn/flask-resteasy">View On GitHub</a></li>
+        </ul>
+
+        <p class="header">This project is maintained by <a class="header name" href="https://github.com/jidn">jidn</a></p>
+
+
+      </header>
+      <section>
+        <p><a href="https://travis-ci.org/jidn/flask-resteasy.svg?branch=masterp"><img src="https://travis-ci.org/jidn/flask-resteasy.svg?branch=master" alt="build status"></a>
+<img src="http://img.shields.io/pypi/v/flask-resteasy.svg" alt="version">
+<img src="http://img.shields.io/pypi/l/flask-resteasy.svg" alt="license">
+<a href="https://coveralls.io/r/jidn/flask-resteasy"><img src="http://img.shields.io/coveralls/jidn/flask-resteasy/master.svg" alt="coverage"></a>
+<img src="http://img.shields.io/pypi/dm/flask-resteasy.svg" alt="downloads"></p>
+
+<h1>
+<a id="flask-resteasy" class="anchor" href="#flask-resteasy" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Flask-RESTeasy</h1>
+
+<p>It starts with an itch.  I was using Flask-RESTful but I soon started
+having to work around it with request parsing and output fields caused
+errors.  I got frustrated.  I loved the project, but it was doing more
+than what I wanted it to do.</p>
+
+<p>I just wanted something to ease the setup and binding of flask MethodViews
+for handling JSON REST APIs.  The rest can be handled by other packages
+dedicated to their tasks.  I kept the basic resource handling for both
+apps and blueprints and removed the rest: request parsing, output fields,
+authentication, and static error handling.</p>
+
+<p>I wanted something simple in the way Flask was simple.  This is my
+attempt at making it so.  If you have seen Flask-RESTful, this will
+look very familiar.</p>
+
+<h1>
+<a id="install" class="anchor" href="#install" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Install</h1>
+
+<p>For install you can use pip:</p>
+
+<div class="highlight highlight-text-shell-session"><pre>$ <span class="pl-s1">pip install flask_resteasy</span></pre></div>
+
+<h1>
+<a id="quickstart" class="anchor" href="#quickstart" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>QuickStart</h1>
+
+<div class="highlight highlight-source-python"><pre><span class="pl-k">from</span> flask <span class="pl-k">import</span> Flask
+<span class="pl-k">from</span> flask.ext <span class="pl-k">import</span> resteasy
+
+app <span class="pl-k">=</span> Flask(<span class="pl-c1">__name__</span>)
+api <span class="pl-k">=</span> resteasy.Api(app)
+
+<span class="pl-en">@api.resource</span>(<span class="pl-s"><span class="pl-pds">'</span>/<span class="pl-pds">'</span></span>)
+<span class="pl-k">class</span> <span class="pl-en">HelloWorld</span>(<span class="pl-e">resteasy</span>.<span class="pl-e">Resource</span>):
+    <span class="pl-k">def</span> <span class="pl-en">get</span>(<span class="pl-smi"><span class="pl-smi">self</span></span>):
+        <span class="pl-k">return</span> {<span class="pl-s"><span class="pl-pds">'</span>msg<span class="pl-pds">'</span></span>: <span class="pl-s"><span class="pl-pds">'</span>Hello world<span class="pl-pds">'</span></span>}
+
+    <span class="pl-k">def</span> <span class="pl-en">delete</span>(<span class="pl-smi"><span class="pl-smi">self</span></span>):
+        <span class="pl-k">return</span> {<span class="pl-s"><span class="pl-pds">'</span>msg<span class="pl-pds">'</span></span>: <span class="pl-s"><span class="pl-pds">'</span>Sorry Dave.<span class="pl-pds">'</span></span>}
+
+<span class="pl-k">if</span> <span class="pl-c1">__name__</span> <span class="pl-k">==</span> <span class="pl-s"><span class="pl-pds">'</span>__main__<span class="pl-pds">'</span></span>:
+    app.run(<span class="pl-v">debug</span><span class="pl-k">=</span><span class="pl-c1">True</span>)</pre></div>
+
+<p>Execute that code and you have a running server on port 5000.  If you get an error, you probably have something else running on that port.  Either stop the other process or change the port in your Flask app.</p>
+
+<p>Now either check with a browser, or use the following commands.</p>
+
+<div class="highlight highlight-text-shell-session"><pre>$ <span class="pl-s1">curl http://localhost:5000</span>
+<span class="pl-mo">{"msg": "Hello world"}</span>
+
+$ <span class="pl-s1">curl http://localhost:5000 -X <span class="pl-s"><span class="pl-pds">"</span>DELETE<span class="pl-pds">"</span></span></span>
+<span class="pl-mo">{"msg": "Sorry Dave."}</span></pre></div>
+      </section>
+      <footer>
+        <p><small>Hosted on <a href="https://pages.github.com">GitHub Pages</a> using the Dinky theme</small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><![endif]-->
+		          <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-74921514-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>

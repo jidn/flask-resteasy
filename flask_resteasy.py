@@ -85,7 +85,7 @@ class Api(object):
         :type prefix: str
         :param decorators: Decorators to attach to every resource
         :type decorators: list
-        :param response: `ApiResponse` object, default JSONResponse
+        :param response: `ApiResponse` object, default JSONResponse()
         :type response: `ApiResponse`
         """
         self.app = None

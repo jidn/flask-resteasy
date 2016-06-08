@@ -42,9 +42,24 @@ class TestHelpers(object):
         """JSON response."""
         with Flask(__name__).app_context():
             resp = JSONResponse().pack('hi', 201)
-            assert resp.status_code == 201
+            assert 201 == resp.status_code
             assert resp.headers['Content-Type'] == 'application/json'
             assert loads(resp.data) == "hi"
+
+    def test_json_pretty_response(self):
+        """Pass pretty print JSON configuration."""
+        data = {'data': [1, 'two', 3], 'amsg': 'no message'}
+        with Flask(__name__).app_context():
+            indent = 4
+            resp = JSONResponse(sort_keys=True, indent=indent,
+                                separators=(',', ':')).pack(data, 201)
+            assert 201 == resp.status_code
+            assert 'application/json' == resp.headers['Content-Type']
+            assert resp.data.startswith('{\n' + ' ' * indent)
+            lines = resp.data.split('\n')
+            assert 8 == len(lines)
+            assert lines[4].startswith(' ' * indent * 2)
+            assert loads(resp.data) == data
 
 
 class TestPrefixes(object):
@@ -157,6 +172,30 @@ class TestAPI(object):
         with pytest.raises(ValueError) as err:
             api.add_resource(Bar, '/bar', endpoint='baz')
         assert err.value.args[0].startswith("Endpoint 'baz' is already")
+
+    def test_api_pretty(self):
+        """Check the JSONResponse for pretty print"""
+        responder = JSONResponse(sort_keys=True, indent=4,
+                                 separators=(',', ':'))
+        app = Flask(__name__)
+        api = Api(app, response=responder)
+
+        @api.resource('/pretty')
+        class Foo(Resource):
+            data = {'data': [1, 'two', 3], 'amsg': 'no message'}
+            def get(self):
+                return Foo.data
+
+        with app.test_client() as c:
+            resp = c.get('/pretty')
+
+            assert 200 == resp.status_code
+            assert 'application/json' == resp.headers['Content-Type']
+            assert resp.data.startswith('{\n' + ' ' * 4)
+            lines = resp.data.split('\n')
+            assert 8 == len(lines)
+            assert lines[4].startswith(' ' * 8)
+            assert loads(resp.data) == Foo.data
 
     def test_api_same_url(self):
         """API same url."""

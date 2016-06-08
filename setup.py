@@ -27,13 +27,16 @@ setup(
     version=__version__,
     keywords=['flask', 'REST', 'json', 'MethodView'],
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Framework :: Flask',
         'Intended Audience :: Developers',
         'Environment :: Web Environment',
         'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
+        'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
+        'Topic :: Software Development :: Libraries :: Python Modules'
     ],
     py_modules=['flask_resteasy'],
     # packages=find_packages(exclude=['tests']),

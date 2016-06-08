@@ -27,7 +27,7 @@ TESTREQUIREMENTS := $(wildcard $(TESTDIR)/requirements.txt)
 ifdef TRAVIS
 	ENV = $(VIRTUAL_ENV)
 else
-	PYTHON_VERSION := 
+	PYTHON_VERSION := 2.7
 	ENV := env
 endif
 

@@ -115,10 +115,10 @@ TESTRUN_OPTS := --cov $(PACKAGE) \
 			   --cov-report html 
 
 test: env $(DEPENDS_CI) $(TESTS) $(ENV)/requirements-test
-	$(TESTRUN) $(TESTDIR)/*.py $(TESTRUN_OPTS)
+	$(TESTRUN) $(TESTDIR) $(TESTRUN_OPTS)
 
 pdb: env $(DEPENDS_CI) $(TEST) $(ENV)/requirements-test
-	$(TESTRUN) $(TESTDIR)/*.py $(TESTRUN_OPTS) -x --pdb
+	$(TESTRUN) $(TESTDIR) $(TESTRUN_OPTS) -x --pdb
 
 $(ENV)/requirements-test: $(TESTREQUIREMENTS)
 ifneq ($(TESTREQUIREMENTS),)
@@ -139,6 +139,7 @@ clean: .clean-dist .clean-test .clean-build
 
 clean-env: clean
 	@rm -rf $(ENV)
+	@rm -rf .tox
 
 clean-all: clean clean-env
 

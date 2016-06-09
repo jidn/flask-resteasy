@@ -55,10 +55,10 @@ class TestHelpers(object):
                                 separators=(',', ':')).pack(data, 201)
             assert 201 == resp.status_code
             assert 'application/json' == resp.headers['Content-Type']
-            assert resp.data.startswith('{\n' + ' ' * indent)
-            lines = resp.data.split('\n')
+            assert resp.data.startswith(b'{\n' + b' ' * indent)
+            lines = resp.data.split(b'\n')
             assert 8 == len(lines)
-            assert lines[4].startswith(' ' * indent * 2)
+            assert lines[4].startswith(b' ' * indent * 2)
             assert loads(resp.data) == data
 
 
@@ -191,10 +191,10 @@ class TestAPI(object):
 
             assert 200 == resp.status_code
             assert 'application/json' == resp.headers['Content-Type']
-            assert resp.data.startswith('{\n' + ' ' * 4)
-            lines = resp.data.split('\n')
+            assert resp.data.startswith(b'{\n' + b' ' * 4)
+            lines = resp.data.split(b'\n')
             assert 8 == len(lines)
-            assert lines[4].startswith(' ' * 8)
+            assert lines[4].startswith(b' ' * 8)
             assert loads(resp.data) == Foo.data
 
     def test_api_same_url(self):

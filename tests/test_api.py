@@ -5,6 +5,7 @@ except:
     # python3
     from unittest.mock import Mock
 from flask import Flask, abort, make_response, request, url_for
+from flask import __version__ as flask_version
 from flask.json import loads
 from flask_resteasy import Api, ApiResponse, Resource, JSONResponse, unpack
 import pytest
@@ -160,7 +161,9 @@ class TestAPI(object):
             assert to_json(c.get('/api2')) == resource.resp
 
     def test_api_same_endpoint(self):
-        """API reuse endpoint."""
+        """API reuse endpoint.
+
+        You can't use the same endpoint, it should throw an error."""
         app = Flask(__name__)
         api = Api(app, prefix='/v1')
 
@@ -169,9 +172,15 @@ class TestAPI(object):
         class Bar(Resource):
             def get(self):
                 return 'bar'
-        with pytest.raises(ValueError) as err:
-            api.add_resource(Bar, '/bar', endpoint='baz')
-        assert err.value.args[0].startswith("Endpoint 'baz' is already")
+        major, minor = map(int, flask_version.split("."))[:2]
+        if major == 0 and minor > 10:
+            with pytest.raises(AssertionError) as err:
+                api.add_resource(Bar, '/bar', endpoint='baz')
+            assert err.value.args[0].endswith("existing endpoint function: baz")
+        else:
+            with pytest.raises(ValueError) as err:
+                api.add_resource(Bar, '/bar', endpoint='baz')
+            assert err.value.args[0].startswith("Endpoint 'baz' is already")
 
     def test_api_pretty(self):
         """Check the JSONResponse for pretty print"""

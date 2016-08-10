@@ -36,7 +36,7 @@ from flask.helpers import _endpoint_from_view_func
 from werkzeug.wrappers import Response as ResponseBase
 
 
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 
 
 def unpack(rv):
@@ -236,7 +236,7 @@ class Api(object):
         endpoint = kwargs.pop('endpoint', None) or resource.__name__.lower()
         self.endpoints.add(endpoint)
 
-        if not isinstance(app, flask.Blueprint) and endpoint in app.view_functions.keys():
+        if endpoint in getattr(app, 'view_class', {}):
             existing_view_class = app.view_functions[endpoint].__dict__['view_class']
 
             # if you override the endpoint with a different class, avoid the collision by raising an exception

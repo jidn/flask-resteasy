@@ -192,6 +192,7 @@ class TestAPI(object):
         @api.resource('/pretty')
         class Foo(Resource):
             data = {'data': [1, 'two', 3], 'amsg': 'no message'}
+
             def get(self):
                 return Foo.data
 

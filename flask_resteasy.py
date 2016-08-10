@@ -401,4 +401,3 @@ class JSONResponse(ApiResponse):
                                    status, {'Content-Type': self.content_type})
         resp.headers.extend(headers)
         return resp
-

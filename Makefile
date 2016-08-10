@@ -90,7 +90,7 @@ endif
 ### Static Analysis & Travis CI ##############################################
 .PHONY: check flake8 pep257
 
-PEP8_IGNORED := E501,E123,D104,D203
+PEP8_IGNORED := E501,E123,D104,D203,F401
 check: flake8 pep257
 
 $(DEPENDS_CI): env $(TESTREQUIREMENTS)

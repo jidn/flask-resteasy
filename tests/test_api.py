@@ -172,7 +172,7 @@ class TestAPI(object):
         class Bar(Resource):
             def get(self):
                 return 'bar'
-        major, minor = map(int, flask_version.split("."))[:2]
+        major, minor = tuple(map(int, flask_version.split(".")))[:2]
         if major == 0 and minor > 10:
             with pytest.raises(AssertionError) as err:
                 api.add_resource(Bar, '/bar', endpoint='baz')
